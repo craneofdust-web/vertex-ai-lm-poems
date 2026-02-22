@@ -1,0 +1,43 @@
+﻿# Python
+__pycache__/
+*.py[cod]
+*.pyd
+*.so
+
+# Environments
+.venv/
+venv/
+env/
+.env
+.env.*
+!.env.example
+
+# Editor and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+~$*
+*.tmp
+*.bak
+
+# Local runtime and generated artifacts
+runtime_workspaces/
+recycle_bin/
+*notebookLM/
+references/v0.1_notebookLM/
+references/v0.2_api_results/runs/
+references/legacy_handoff/
+next_window_stack/backend/logs/
+next_window_stack/data/
+*.db
+*.sqlite
+*.sqlite3
+
+# Python cache in nested modules
+**/__pycache__/
+**/*.pyc
+
+# Local execution status snapshots
+references/legacy_handoff/NEXT_WINDOW_EXECUTION/EXECUTION_STATUS_*.md

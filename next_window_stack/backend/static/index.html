@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Poetry Skill Web</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <div id="app">
+    <aside id="left-panel">
+      <div class="panel-title">Nodes</div>
+      <div class="control-group">
+        <label for="run-id-input">Run ID</label>
+        <div class="inline-row">
+          <input id="run-id-input" type="text" placeholder="latest" />
+          <button id="load-run-btn" type="button">Load</button>
+        </div>
+      </div>
+      <div class="control-group">
+        <label for="search-input">Search</label>
+        <input id="search-input" type="text" placeholder="node name/id" />
+      </div>
+      <div id="node-list"></div>
+    </aside>
+
+    <main id="center-panel">
+      <div id="toolbar" class="toolbar">
+        <button id="toggle-toolbar-btn" type="button">Collapse</button>
+        <button id="refresh-btn" type="button">Refresh Graph</button>
+        <button id="smoke-btn" type="button">Run Smoke</button>
+        <button id="full-btn" type="button">Run Full</button>
+        <span id="status-text">idle</span>
+      </div>
+      <div id="toolbar-collapsed" class="toolbar-collapsed hidden">
+        <button id="expand-toolbar-btn" type="button">Expand Toolbar</button>
+      </div>
+
+      <section id="graph-shell">
+        <svg id="edge-layer"></svg>
+        <div id="node-layer"></div>
+      </section>
+    </main>
+
+    <aside id="right-panel">
+      <div class="panel-title">Node Details</div>
+      <div id="details-empty">Select a node.</div>
+      <div id="details-body" class="hidden">
+        <h2 id="detail-name"></h2>
+        <div id="detail-meta" class="meta-line"></div>
+        <div id="detail-description"></div>
+        <div id="detail-unlock" class="subtle"></div>
+
+        <section class="detail-section">
+          <h3>Primary Link</h3>
+          <div id="detail-primary"></div>
+        </section>
+
+        <section class="detail-section">
+          <h3>Weak Relations</h3>
+          <div id="detail-weak"></div>
+        </section>
+
+        <section class="detail-section">
+          <h3>Immediate Downstream</h3>
+          <div id="detail-downstream"></div>
+        </section>
+
+        <section class="detail-section">
+          <h3>Lineage</h3>
+          <div><strong>Upstream</strong></div>
+          <div id="lineage-upstream"></div>
+          <div><strong>Midstream</strong></div>
+          <div id="lineage-midstream"></div>
+          <div><strong>Downstream</strong></div>
+          <div id="lineage-downstream"></div>
+        </section>
+
+        <section class="detail-section">
+          <h3>Citations</h3>
+          <div id="detail-citations"></div>
+        </section>
+
+        <section class="detail-section">
+          <h3>Pinned Citation</h3>
+          <div id="pinned-citation" class="subtle">none</div>
+        </section>
+      </div>
+    </aside>
+  </div>
+
+  <div id="citation-preview" class="hidden"></div>
+  <script src="/static/app.js"></script>
+</body>
+</html>
+

@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file.
 - Added `backend/scripts/start_local.py` with interpreter auto-fallback to reduce startup failure under broken virtualenv setups.
 - Added `HEAD` support for read endpoints to improve browser/proxy compatibility (including Safari preflight-style requests).
 - Removed optional-chaining syntax from frontend runtime code to avoid parse failures on older Safari engines.
+- Refreshed UI theme to daylight-first colors and enabled automatic light/dark follow-system behavior via `prefers-color-scheme`.
 
 ### Security
 - Security reporting guidance now explicitly prioritizes GitHub private vulnerability reporting.

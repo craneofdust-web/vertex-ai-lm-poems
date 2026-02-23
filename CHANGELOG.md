@@ -11,6 +11,8 @@ All notable changes to this project will be documented in this file.
 - Added `CODE_OF_CONDUCT.md` and linked it from project docs.
 - Migrated runtime path naming from the legacy nested backend location to `backend` and updated active config/docs accordingly.
 - Added `backend/scripts/start_local.py` with interpreter auto-fallback to reduce startup failure under broken virtualenv setups.
+- Added `HEAD` support for read endpoints to improve browser/proxy compatibility (including Safari preflight-style requests).
+- Removed optional-chaining syntax from frontend runtime code to avoid parse failures on older Safari engines.
 
 ### Security
 - Security reporting guidance now explicitly prioritizes GitHub private vulnerability reporting.

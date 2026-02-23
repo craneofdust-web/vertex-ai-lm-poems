@@ -401,7 +401,12 @@ async function runPipeline(kind) {
       headers: { "Content-Type": "application/json" },
       body: "{}",
     });
-    const runId = result?.ingest?.run_id || result?.pipeline?.run_id || "";
+    let runId = "";
+    if (result && result.ingest && result.ingest.run_id) {
+      runId = result.ingest.run_id;
+    } else if (result && result.pipeline && result.pipeline.run_id) {
+      runId = result.pipeline.run_id;
+    }
     if (runId) runIdInput.value = runId;
     setStatus(`${kind} completed: ${runId || "ok"}`);
     await loadGraph();
@@ -443,4 +448,3 @@ window.addEventListener("resize", () => {
 });
 
 loadGraph();
-

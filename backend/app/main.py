@@ -233,12 +233,12 @@ def startup() -> None:
     init_db()
 
 
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"])
 def root() -> FileResponse:
     return FileResponse(settings.static_dir / "index.html")
 
 
-@app.get("/visualization/latest")
+@app.api_route("/visualization/latest", methods=["GET", "HEAD"])
 def latest_visualization_index(mode: str = Query("full")) -> RedirectResponse:
     normalized = mode.strip().lower()
     if normalized not in {"full", "smoke", "any"}:
@@ -249,7 +249,7 @@ def latest_visualization_index(mode: str = Query("full")) -> RedirectResponse:
     return RedirectResponse(url=_visualization_url(str(entry["run_id"])), status_code=307)
 
 
-@app.get("/visualization/{run_id}")
+@app.api_route("/visualization/{run_id}", methods=["GET", "HEAD"])
 def visualization_index_redirect(run_id: str) -> RedirectResponse:
     with db_session() as conn:
         allowed_run_ids = _ingested_runtime_run_ids(conn)
@@ -257,7 +257,7 @@ def visualization_index_redirect(run_id: str) -> RedirectResponse:
     return RedirectResponse(url=_visualization_url(run_id), status_code=307)
 
 
-@app.get("/visualization/{run_id}/")
+@app.api_route("/visualization/{run_id}/", methods=["GET", "HEAD"])
 def visualization_index_by_run(run_id: str) -> FileResponse:
     with db_session() as conn:
         allowed_run_ids = _ingested_runtime_run_ids(conn)
@@ -265,7 +265,7 @@ def visualization_index_by_run(run_id: str) -> FileResponse:
     return FileResponse(entry["index_path"])
 
 
-@app.get("/visualization/{run_id}/{asset_path:path}")
+@app.api_route("/visualization/{run_id}/{asset_path:path}", methods=["GET", "HEAD"])
 def visualization_asset_by_run(run_id: str, asset_path: str) -> FileResponse:
     if not asset_path or asset_path == "/":
         return visualization_index_by_run(run_id)
@@ -283,7 +283,7 @@ def visualization_asset_by_run(run_id: str, asset_path: str) -> FileResponse:
     return FileResponse(asset_file)
 
 
-@app.get("/visualizations")
+@app.api_route("/visualizations", methods=["GET", "HEAD"])
 def visualizations_index() -> HTMLResponse:
     with db_session() as conn:
         allowed_run_ids = _ingested_runtime_run_ids(conn)
@@ -357,7 +357,7 @@ def visualizations_index() -> HTMLResponse:
     return HTMLResponse(content=html)
 
 
-@app.get("/health")
+@app.api_route("/health", methods=["GET", "HEAD"])
 def health() -> dict[str, str]:
     return {
         "status": "ok",
@@ -365,7 +365,7 @@ def health() -> dict[str, str]:
     }
 
 
-@app.get("/graph")
+@app.api_route("/graph", methods=["GET", "HEAD"])
 def get_graph(run_id: str | None = None, include_weak: bool = False) -> dict[str, Any]:
     with db_session() as conn:
         resolved_run_id = _resolve_run_id(conn, run_id)
@@ -412,7 +412,7 @@ def get_graph(run_id: str | None = None, include_weak: bool = False) -> dict[str
         }
 
 
-@app.get("/node/{node_id}")
+@app.api_route("/node/{node_id}", methods=["GET", "HEAD"])
 def get_node(node_id: str, run_id: str | None = None) -> dict[str, Any]:
     with db_session() as conn:
         resolved_run_id = _resolve_run_id(conn, run_id)
@@ -525,7 +525,7 @@ def get_node(node_id: str, run_id: str | None = None) -> dict[str, Any]:
         }
 
 
-@app.get("/node/{node_id}/lineage")
+@app.api_route("/node/{node_id}/lineage", methods=["GET", "HEAD"])
 def get_lineage(node_id: str, run_id: str | None = None) -> dict[str, Any]:
     with db_session() as conn:
         resolved_run_id = _resolve_run_id(conn, run_id)
@@ -589,7 +589,7 @@ def get_lineage(node_id: str, run_id: str | None = None) -> dict[str, Any]:
         }
 
 
-@app.get("/search")
+@app.api_route("/search", methods=["GET", "HEAD"])
 def search(q: str = Query(..., min_length=1), run_id: str | None = None, limit: int = 20) -> dict[str, Any]:
     q = q.strip()
     if not q:
@@ -702,7 +702,7 @@ def run_full(body: RunRequestBody | None = None) -> dict[str, Any]:
     return _run_and_ingest("full", payload)
 
 
-@app.get("/runs")
+@app.api_route("/runs", methods=["GET", "HEAD"])
 def list_runs(limit: int = 30) -> dict[str, Any]:
     with db_session() as conn:
         runtime_entries = _collect_runtime_run_dirs()

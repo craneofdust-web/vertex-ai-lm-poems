@@ -360,8 +360,11 @@ def ingest_run_artifacts(
                     "folder_status": folder_status,
                 }
 
+    sources_with_text = 0
     for source_id, meta in source_records.items():
         text = source_text_by_id(source_folder, source_id)
+        if text:
+            sources_with_text += 1
         conn.execute(
             """
             INSERT INTO sources (
@@ -403,6 +406,8 @@ def ingest_run_artifacts(
         "far_jump_edges": far_jump_edges,
         "citations": citation_rows,
         "sources": len(source_records),
+        "sources_with_text": sources_with_text,
+        "sources_without_text": max(0, len(source_records) - sources_with_text),
         "fragments": fragment_rows,
         "max_stage_jump": max_stage_jump,
     }

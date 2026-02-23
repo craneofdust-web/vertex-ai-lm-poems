@@ -86,6 +86,7 @@ def main() -> None:
             config={
                 "imported_via": "init_db.py",
                 "pipeline_version": "v0.3.1",
+                "source_folder": str(source_folder),
             },
         )
     print(f"[ok] imported run {run_id}")

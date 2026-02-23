@@ -709,6 +709,7 @@ def _run_and_ingest(mode: str, body: RunRequestBody) -> dict[str, Any]:
                 "project_id": project_id,
                 "location": location,
                 "model_candidates": model_candidates,
+                "source_folder": str(source_folder),
                 "selected_models": selected_models,
                 "pipeline": pipeline_result.get("commands", []),
             },

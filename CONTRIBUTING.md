@@ -5,7 +5,7 @@ Thanks for contributing.
 ## Development Setup
 
 ```powershell
-cd next_window_stack/backend
+cd backend
 python -m pip install -r requirements.txt
 python scripts/init_db.py
 python -m uvicorn app.main:app --host 127.0.0.1 --port 8010
@@ -20,13 +20,13 @@ Run at least one local validation path before opening a PR.
 Option A (offline, no Vertex call):
 
 ```powershell
-python -m compileall -q next_window_stack/backend/app
+python -m compileall -q backend/app
 ```
 
 Option B (runtime smoke with your configured environment):
 
 ```powershell
-cd next_window_stack/backend
+cd backend
 python scripts/trigger_api_run.py --mode smoke --iterations 1 --sample-size 10 --max-stage-jump 2 --out logs/smoke_check.json
 ```
 
@@ -34,7 +34,7 @@ python scripts/trigger_api_run.py --mode smoke --iterations 1 --sample-size 10 -
 
 - Keep changes scoped and explain impact in PR description.
 - Do not commit secrets, local paths, or generated runtime workspaces.
-- Update docs (`README.md`, `next_window_stack/backend/README.md`) when behavior changes.
+- Update docs (`README.md`, `backend/README.md`) when behavior changes.
 - Update `CHANGELOG.md` when user-facing behavior changes.
 - Follow `CODE_OF_CONDUCT.md` in all collaboration channels.
 

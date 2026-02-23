@@ -7,7 +7,7 @@ Use these as initial public onboarding issues.
 - Goal: run syntax/type hygiene checks that do not require Vertex credentials.
 - Acceptance:
   - workflow runs on push and PR
-  - runs `python -m compileall -q next_window_stack/backend/app`
+  - runs `python -m compileall -q backend/app`
   - failures block merge
 
 ## 2. Add API authentication toggle

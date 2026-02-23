@@ -6,7 +6,13 @@ from pathlib import Path
 
 
 def _project_root() -> Path:
-    return Path(__file__).resolve().parents[3]
+    here = Path(__file__).resolve()
+    for candidate in here.parents:
+        if not (candidate / "brainstorm_skill_webs.py").is_file():
+            continue
+        if (candidate / "backend").is_dir():
+            return candidate
+    raise RuntimeError(f"unable to detect project root from {here}")
 
 
 @dataclass(frozen=True)
@@ -36,9 +42,9 @@ def get_settings() -> Settings:
 
     return Settings(
         project_root=root,
-        db_path=root / "next_window_stack" / "data" / "skill_web.db",
+        db_path=root / "data" / "skill_web.db",
         runtime_root=root / "runtime_workspaces",
-        static_dir=root / "next_window_stack" / "backend" / "static",
+        static_dir=root / "backend" / "static",
         source_folder=source_folder,
         default_project_id=os.getenv("PROJECT_ID", "your-gcp-project-id"),
         default_location=os.getenv("LOCATION", "us-central1"),

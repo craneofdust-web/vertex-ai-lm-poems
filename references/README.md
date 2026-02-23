@@ -4,9 +4,9 @@ This folder stores historical/reference materials that should not mix with activ
 
 ## Subfolders
 
-- `v0.1_notebookLM/`: notebookLM-era reference notes and drafts.
-- `v0.2_api_results/runs/`: snapshots of API-era run outputs for comparison.
-- `legacy_handoff/`: previous-window handoff docs kept for traceability.
+- `v0.1_notebookLM/`: notebookLM-era reference notes and drafts (tracked).
+- `v0.2_api_results/runs/`: API-era output snapshots for comparison (local-only, gitignored by default).
+- `legacy_handoff/`: previous-window handoff docs for traceability (local-only, gitignored by default).
 
 ## Policy
 

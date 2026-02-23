@@ -9,7 +9,7 @@ param(
 )
 
 if (-not $ProjectRoot) {
-    $ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..\..")).Path
+    $ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 }
 
 $runtimeRoot = Join-Path $ProjectRoot "runtime_workspaces"

@@ -13,16 +13,16 @@ Chinese guide: `中文說明.md`
 The project supports three layers:
 - generation (`brainstorm_skill_webs.py`)
 - merge and fill (`build_master_and_fill_mounting.py`)
-- API + UI runtime (`next_window_stack/backend`)
+- API + UI runtime (`backend`)
 
 ## Repository Layout
 
 - `brainstorm_skill_webs.py`: generate skill graph fragments from poem samples.
 - `build_master_and_fill_mounting.py`: merge fragments and fill unmatched poem-node mappings.
 - `generate_skill_tree_visualizations.py`: render visualization HTML from merged graph.
-- `next_window_stack/backend/`: FastAPI + SQLite runtime and static frontend.
+- `backend/`: FastAPI + SQLite runtime and static frontend.
 - `runtime_workspaces/`: active API pipeline run outputs.
-- `references/`: preserved reference materials (v0.1 notebookLM, v0.2 API snapshots, legacy handoff docs).
+- `references/`: tracked reference docs (`v0.1_notebookLM/`) plus local-only ignored snapshots (`v0.2_api_results/`, `legacy_handoff/`).
 - `recycle_bin/`: quarantine area before permanent deletion.
 - `sample_poems/`: local sample corpus folder (tracked as placeholder only).
 
@@ -36,7 +36,7 @@ The project supports three layers:
 
 ```powershell
 # from repository root
-cd next_window_stack/backend
+cd backend
 python -m pip install -r requirements.txt
 python scripts/init_db.py
 python -m uvicorn app.main:app --host 127.0.0.1 --port 8010
@@ -68,7 +68,7 @@ Auth:
 
 ## Running Pipeline
 
-From `next_window_stack/backend`:
+From `backend`:
 
 ```powershell
 # smoke
@@ -116,7 +116,7 @@ Note:
   - no runtime outputs (`runtime_workspaces/`, DB files, logs)
   - no personal corpus content
 - Run minimum validation:
-  - `python -m compileall -q next_window_stack/backend/app`
+  - `python -m compileall -q backend/app`
   - start backend and verify `/health`, `/runs`, `/graph`, `/visualizations`
 
 ## Contributing

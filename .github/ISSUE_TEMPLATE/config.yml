@@ -1,5 +1,5 @@
 blank_issues_enabled: false
 contact_links:
   - name: Security report
-    url: https://docs.github.com/en/code-security/security-advisories/working-with-repository-security-advisories/reporting-a-vulnerability-in-a-repository
+    url: https://github.com/craneofdust-web/vertex-ai-lm-poems/security/advisories/new
     about: Use a private channel for sensitive disclosures. See SECURITY.md first.

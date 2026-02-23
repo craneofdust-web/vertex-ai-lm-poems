@@ -1,4 +1,4 @@
-# Next Window Backend
+# Backend Service
 
 FastAPI + SQLite runtime for graph query, lineage, and pipeline execution.
 
@@ -32,7 +32,7 @@ Default behavior:
 
 ```powershell
 # from repository root
-cd next_window_stack/backend
+cd backend
 python -m pip install -r requirements.txt
 python scripts/init_db.py
 python -m uvicorn app.main:app --host 127.0.0.1 --port 8010

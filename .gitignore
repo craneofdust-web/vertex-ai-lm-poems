@@ -29,8 +29,8 @@ recycle_bin/
 references/v0.1_notebookLM/
 references/v0.2_api_results/runs/
 references/legacy_handoff/
-next_window_stack/backend/logs/
-next_window_stack/data/
+backend/logs/
+data/
 *.db
 *.sqlite
 *.sqlite3

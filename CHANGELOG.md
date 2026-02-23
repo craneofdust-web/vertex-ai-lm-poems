@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file.
 - Clarified version semantics: API release baseline (`0.1.x`) vs runtime data scope (`v0.3`) vs visualization style labels (`V1~V6`).
 - Clarified public publishing checklist and required pre-publish validations.
 - Added `CODE_OF_CONDUCT.md` and linked it from project docs.
+- Migrated runtime path naming from the legacy nested backend location to `backend` and updated active config/docs accordingly.
 
 ### Security
 - Security reporting guidance now explicitly prioritizes GitHub private vulnerability reporting.

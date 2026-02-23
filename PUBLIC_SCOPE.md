@@ -5,7 +5,7 @@ This file defines what should and should not be published from this repository.
 ## Public (in-scope)
 
 - Core pipeline code in repository root (`brainstorm_skill_webs.py`, `build_master_and_fill_mounting.py`, `generate_skill_tree_visualizations.py`).
-- Runtime API and UI under `next_window_stack/backend/`.
+- Runtime API and UI under `backend/`.
 - Documentation and templates (`README.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `CHANGELOG.md`, `.github/`).
 - Placeholder corpus folder `sample_poems/`.
 

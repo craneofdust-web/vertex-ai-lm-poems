@@ -19,6 +19,8 @@ All notable changes to this project will be documented in this file.
 - Added project-root `.env` auto-loading for runtime defaults when shell variables are not pre-exported.
 - Added ASCII Chinese guide entry file `README.zh-TW.md` and pointed root README to it for cross-platform filename visibility.
 - Enhanced ingest summaries with source-text coverage (`sources_with_text`/`sources_without_text`) and persisted `source_folder` in run config metadata.
+- Added HTML-entity decoding fallback for citation `source_id` path resolution (for filenames like `&#x3c;...&#x3e;`).
+- Added corpus-size and source coverage metrics (`corpus_markdown_files`, `source_coverage_percent`) to ingest summary output.
 
 ### Security
 - Security reporting guidance now explicitly prioritizes GitHub private vulnerability reporting.

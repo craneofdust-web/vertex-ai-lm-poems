@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import html
 import hashlib
 import json
 import re
@@ -133,19 +134,39 @@ def strip_frontmatter(text: str) -> str:
 
 
 def source_text_by_id(source_folder: Path, source_id: str) -> str:
-    candidate = source_folder.joinpath(*source_id.split("/"))
-    if not candidate.exists():
-        candidate = source_folder / source_id
-    if not candidate.exists() or not candidate.is_file():
-        return ""
-    try:
-        return strip_frontmatter(read_text_with_fallback(candidate))
-    except OSError:
-        return ""
+    candidates: list[Path] = []
+    raw = source_id
+    decoded = html.unescape(source_id)
+
+    for sid in (raw, decoded):
+        candidates.append(source_folder.joinpath(*sid.split("/")))
+        candidates.append(source_folder / sid)
+
+    seen: set[Path] = set()
+    for candidate in candidates:
+        if candidate in seen:
+            continue
+        seen.add(candidate)
+        if not candidate.exists() or not candidate.is_file():
+            continue
+        try:
+            return strip_frontmatter(read_text_with_fallback(candidate))
+        except OSError:
+            continue
+    return ""
 
 
 def sha256_text(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def count_markdown_files(source_folder: Path) -> int:
+    if not source_folder.exists() or not source_folder.is_dir():
+        return 0
+    try:
+        return sum(1 for _ in source_folder.rglob("*.md"))
+    except OSError:
+        return 0
 
 
 def _fragment_files(run_dir: Path) -> List[Path]:
@@ -398,6 +419,13 @@ def ingest_run_artifacts(
         )
         fragment_rows += 1
 
+    corpus_markdown_files = count_markdown_files(source_folder)
+    source_coverage_percent = (
+        round((len(source_records) * 100.0) / corpus_markdown_files, 2)
+        if corpus_markdown_files > 0
+        else 0.0
+    )
+
     return {
         "run_id": run_id,
         "nodes": len(prepared_nodes),
@@ -408,6 +436,8 @@ def ingest_run_artifacts(
         "sources": len(source_records),
         "sources_with_text": sources_with_text,
         "sources_without_text": max(0, len(source_records) - sources_with_text),
+        "corpus_markdown_files": corpus_markdown_files,
+        "source_coverage_percent": source_coverage_percent,
         "fragments": fragment_rows,
         "max_stage_jump": max_stage_jump,
     }

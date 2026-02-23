@@ -17,6 +17,7 @@ All notable changes to this project will be documented in this file.
 - Promoted active runtime scope/version naming to `v0.3.1` across API responses and docs.
 - Updated citation hover/pin behavior to prefer original source poem text over explanation snippets.
 - Added project-root `.env` auto-loading for runtime defaults when shell variables are not pre-exported.
+- Added ASCII Chinese guide entry file `README.zh-TW.md` and pointed root README to it for cross-platform filename visibility.
 
 ### Security
 - Security reporting guidance now explicitly prioritizes GitHub private vulnerability reporting.

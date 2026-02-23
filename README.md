@@ -2,7 +2,7 @@
 
 Vertex AI powered pipeline for building a Poetry Skill Web from Markdown poem corpora.
 
-Chinese guide: `中文說明.md`
+Chinese guide: `README.zh-TW.md`
 
 ## Versioning
 

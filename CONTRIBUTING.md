@@ -7,8 +7,7 @@ Thanks for contributing.
 ```powershell
 cd backend
 python -m pip install -r requirements.txt
-python scripts/init_db.py
-python -m uvicorn app.main:app --host 127.0.0.1 --port 8010
+python scripts/start_local.py --reload
 ```
 
 On macOS/Linux, replace `python` with `python3` if needed.

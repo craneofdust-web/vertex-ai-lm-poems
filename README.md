@@ -38,8 +38,7 @@ The project supports three layers:
 # from repository root
 cd backend
 python -m pip install -r requirements.txt
-python scripts/init_db.py
-python -m uvicorn app.main:app --host 127.0.0.1 --port 8010
+python scripts/start_local.py --reload
 ```
 
 On macOS/Linux, replace `python` with `python3` if needed.
@@ -49,6 +48,23 @@ Open:
 - `http://127.0.0.1:8010/docs`
 - `http://127.0.0.1:8010/visualizations` (all available skill-tree indices)
 - `http://127.0.0.1:8010/visualization/latest?mode=full` (latest full run, recommended)
+
+### Startup Troubleshooting (macOS/Linux)
+
+If `pip install` fails with SSL hostname mismatch for `pypi.org` (for example, certificate not matching `pypi.org`), this is a local network/proxy certificate issue, not an API bug.
+
+- Preferred fix: switch to a trusted network or correct your proxy/certificate settings.
+- Temporary local fallback (when system Python already has dependencies):
+
+```bash
+cd backend
+python3 -m venv --system-site-packages .venv
+source .venv/bin/activate
+python3 -m pip install -r requirements.txt
+python3 scripts/start_local.py --reload
+```
+
+If you are already inside a broken `.venv`, run `deactivate` first, then retry.
 
 ## Environment Variables
 

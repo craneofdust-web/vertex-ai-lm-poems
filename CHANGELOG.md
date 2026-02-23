@@ -10,6 +10,7 @@ All notable changes to this project will be documented in this file.
 - Clarified public publishing checklist and required pre-publish validations.
 - Added `CODE_OF_CONDUCT.md` and linked it from project docs.
 - Migrated runtime path naming from the legacy nested backend location to `backend` and updated active config/docs accordingly.
+- Added `backend/scripts/start_local.py` with interpreter auto-fallback to reduce startup failure under broken virtualenv setups.
 
 ### Security
 - Security reporting guidance now explicitly prioritizes GitHub private vulnerability reporting.

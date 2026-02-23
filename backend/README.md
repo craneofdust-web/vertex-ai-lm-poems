@@ -34,8 +34,7 @@ Default behavior:
 # from repository root
 cd backend
 python -m pip install -r requirements.txt
-python scripts/init_db.py
-python -m uvicorn app.main:app --host 127.0.0.1 --port 8010
+python scripts/start_local.py --reload
 ```
 
 On macOS/Linux, replace `python` with `python3` if needed.
@@ -43,6 +42,21 @@ On macOS/Linux, replace `python` with `python3` if needed.
 Open:
 - `http://127.0.0.1:8010/`
 - `http://127.0.0.1:8010/docs`
+
+## Troubleshooting
+
+If you see `No module named uvicorn` inside `.venv`, dependencies were not installed in that environment.
+
+Use this fallback setup:
+
+```bash
+python3 -m venv --system-site-packages .venv
+source .venv/bin/activate
+python3 -m pip install -r requirements.txt
+python3 scripts/start_local.py --reload
+```
+
+If `pip` reports SSL certificate mismatch for `pypi.org`, fix your network/proxy certificate settings first.
 
 ## Smoke Example
 

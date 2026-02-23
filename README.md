@@ -7,7 +7,7 @@ Chinese guide: `中文說明.md`
 ## Versioning
 
 - API package version is currently `0.1.x` (service/runtime release baseline).
-- Active runtime data scope is `v0.3` (runs under `runtime_workspaces/` and ingested to SQLite).
+- Active runtime data scope is `v0.3.1` (runs under `runtime_workspaces/` and ingested to SQLite).
 - Visualization labels `V1~V6` are UI style variants, not pipeline versions.
 
 The project supports three layers:
@@ -49,6 +49,16 @@ Open:
 - `http://127.0.0.1:8010/visualizations` (all available skill-tree indices)
 - `http://127.0.0.1:8010/visualization/latest?mode=full` (latest full run, recommended)
 
+### Recommended Daily Startup (macOS/Linux)
+
+```bash
+cd "/Users/liujiugao/Library/CloudStorage/OneDrive-個人/代碼庫與projects/vertex ai LM POEMS"
+git pull
+cd backend
+source .venv/bin/activate
+python3 scripts/start_local.py --reload
+```
+
 ### Startup Troubleshooting (macOS/Linux)
 
 If `pip install` fails with SSL hostname mismatch for `pypi.org` (for example, certificate not matching `pypi.org`), this is a local network/proxy certificate issue, not an API bug.
@@ -69,6 +79,7 @@ If you are already inside a broken `.venv`, run `deactivate` first, then retry.
 ## Environment Variables
 
 Copy `.env.example` to `.env` and fill values.
+`backend/app/config.py` auto-loads project-root `.env` at startup if variables are not already exported in your shell.
 
 Required:
 - `PROJECT_ID`
@@ -106,9 +117,9 @@ After backend startup, use these stable routes instead of opening nested files m
 - `http://127.0.0.1:8010/visualization/{run_id}/{asset_path}` to open visualization assets/files under that run
 
 Note:
-- API default scope is active runtime runs (`runtime_workspaces`, v0.3). Legacy/reference snapshots are not used by default routes.
+- API default scope is active runtime runs (`runtime_workspaces`, v0.3.1). Legacy/reference snapshots are not used by default routes.
 - Visualization routes list/serve only runtime runs that are already ingested into the SQLite DB.
-- `V1~V6` labels inside a run index represent visualization style variants, not pipeline versions (`v0.1/v0.2/v0.3`).
+- `V1~V6` labels inside a run index represent visualization style variants, not pipeline versions (`v0.1/v0.2/v0.3.1`).
 
 ## Data and Privacy Policy
 

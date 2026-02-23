@@ -85,7 +85,7 @@ def main() -> None:
             max_stage_jump=max(1, int(args.max_stage_jump)),
             config={
                 "imported_via": "init_db.py",
-                "pipeline_version": "v0.3",
+                "pipeline_version": "v0.3.1",
             },
         )
     print(f"[ok] imported run {run_id}")

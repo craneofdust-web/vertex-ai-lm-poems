@@ -15,7 +15,7 @@ from pydantic import BaseModel, Field
 
 from .config import get_settings
 from .db import db_session, init_db
-from .ingest import ingest_run_artifacts
+from .ingest import ingest_run_artifacts, source_text_by_id
 from .lineage import build_adjacency, walk_ancestors, walk_descendants
 from .pipeline import PipelineRequest, run_generation_pipeline
 
@@ -26,7 +26,7 @@ settings.db_path.parent.mkdir(parents=True, exist_ok=True)
 settings.static_dir.mkdir(parents=True, exist_ok=True)
 
 app = FastAPI(title="Poetry Skill Web API", version="0.1.0")
-ACTIVE_PIPELINE_VERSION = "v0.3"
+ACTIVE_PIPELINE_VERSION = "v0.3.1"
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -340,7 +340,7 @@ def visualizations_index() -> HTMLResponse:
         f"<p><strong>Active pipeline:</strong> <code>{ACTIVE_PIPELINE_VERSION}</code> "
         "(runtime_workspaces only)</p>"
         "<p><strong>Note:</strong> <code>V1~V6</code> means visualization styles, "
-        "not pipeline versions like <code>v0.1/v0.2/v0.3</code>.</p>"
+        "not pipeline versions like <code>v0.1/v0.2/v0.3.1</code>.</p>"
         f"<p>Latest any: <code>{latest_any_run_id}</code> | "
         "<a href='/visualization/latest?mode=any'>open</a></p>"
         f"<p>Latest full: <code>{latest_full_run_id}</code> | "
@@ -416,6 +416,22 @@ def get_graph(run_id: str | None = None, include_weak: bool = False) -> dict[str
 def get_node(node_id: str, run_id: str | None = None) -> dict[str, Any]:
     with db_session() as conn:
         resolved_run_id = _resolve_run_id(conn, run_id)
+        source_folder = settings.source_folder
+        run_config_row = conn.execute(
+            "SELECT config_json FROM runs WHERE run_id = ?",
+            (resolved_run_id,),
+        ).fetchone()
+        if run_config_row and run_config_row["config_json"]:
+            try:
+                config_json = json.loads(run_config_row["config_json"])
+            except json.JSONDecodeError:
+                config_json = {}
+            configured_source = str(config_json.get("source_folder", "")).strip()
+            if configured_source:
+                candidate = Path(configured_source).expanduser()
+                if candidate.exists():
+                    source_folder = candidate
+
         node = conn.execute(
             """
             SELECT id, name, tier, stage, lane, description, unlock_condition, support_count
@@ -429,10 +445,18 @@ def get_node(node_id: str, run_id: str | None = None) -> dict[str, Any]:
 
         citations = conn.execute(
             """
-            SELECT source_id, source_title, quote, why, folder_status
-            FROM citations
-            WHERE run_id = ? AND node_id = ?
-            ORDER BY id ASC
+            SELECT
+                c.source_id AS source_id,
+                COALESCE(NULLIF(c.source_title, ''), NULLIF(s.title, ''), c.source_id) AS source_title,
+                c.quote AS quote,
+                c.why AS why,
+                c.folder_status AS folder_status,
+                COALESCE(s.text, '') AS source_text
+            FROM citations c
+            LEFT JOIN sources s
+              ON s.run_id = c.run_id AND s.source_id = c.source_id
+            WHERE c.run_id = ? AND c.node_id = ?
+            ORDER BY c.id ASC
             """,
             (resolved_run_id, node_id),
         ).fetchall()
@@ -470,6 +494,26 @@ def get_node(node_id: str, run_id: str | None = None) -> dict[str, Any]:
             """,
             (resolved_run_id, node_id),
         ).fetchall()
+
+        source_text_cache: dict[str, str] = {}
+        citation_payload = []
+        for row in citations:
+            source_id = str(row["source_id"])
+            source_text = str(row["source_text"] or "").strip()
+            if not source_text:
+                if source_id not in source_text_cache:
+                    source_text_cache[source_id] = source_text_by_id(source_folder, source_id)
+                source_text = source_text_cache[source_id]
+            citation_payload.append(
+                {
+                    "source_id": source_id,
+                    "source_title": row["source_title"],
+                    "quote": row["quote"],
+                    "why": row["why"],
+                    "folder_status": row["folder_status"],
+                    "source_text": source_text,
+                }
+            )
 
         return {
             "run_id": resolved_run_id,
@@ -512,16 +556,7 @@ def get_node(node_id: str, run_id: str | None = None) -> dict[str, Any]:
                 for row in weak
             ],
             "immediate_downstream": [_node_summary(row) for row in downstream],
-            "citations": [
-                {
-                    "source_id": row["source_id"],
-                    "source_title": row["source_title"],
-                    "quote": row["quote"],
-                    "why": row["why"],
-                    "folder_status": row["folder_status"],
-                }
-                for row in citations
-            ],
+            "citations": citation_payload,
         }
 
 

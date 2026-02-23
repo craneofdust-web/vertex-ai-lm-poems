@@ -5,7 +5,7 @@ FastAPI + SQLite runtime for graph query, lineage, and pipeline execution.
 ## Versioning
 
 - API package version: `0.1.x`
-- Default runtime data scope: `v0.3` (`runtime_workspaces` + ingested SQLite runs)
+- Default runtime data scope: `v0.3.1` (`runtime_workspaces` + ingested SQLite runs)
 - Visualization `V1~V6`: style variants only
 
 ## Endpoints
@@ -16,7 +16,7 @@ FastAPI + SQLite runtime for graph query, lineage, and pipeline execution.
 - `GET /search?q=...&run_id=...`
 - `POST /run/smoke`
 - `POST /run/full`
-- `GET /runs` (active runtime runs only, v0.3)
+- `GET /runs` (active runtime runs only, v0.3.1)
 - `GET /visualizations` (index of all available visualization entry pages)
 - `GET /visualization/latest?mode=full|smoke|any` (redirect to latest visualization entry page by mode)
 - `GET /visualization/{run_id}` (redirect to `/visualization/{run_id}/`)
@@ -24,7 +24,7 @@ FastAPI + SQLite runtime for graph query, lineage, and pipeline execution.
 - `GET /visualization/{run_id}/{asset_path}` (assets/files for one run visualization directory)
 
 Default behavior:
-- Endpoints without explicit `run_id` resolve to the latest active runtime run under `runtime_workspaces` (v0.3 scope).
+- Endpoints without explicit `run_id` resolve to the latest active runtime run under `runtime_workspaces` (v0.3.1 scope).
 - Visualization endpoints only expose runtime runs that are already ingested into SQLite.
 - `V1~V6` in visualization pages are style variants only, not pipeline versions.
 
@@ -38,6 +38,7 @@ python scripts/start_local.py --reload
 ```
 
 On macOS/Linux, replace `python` with `python3` if needed.
+Project-root `.env` values are auto-loaded when not already exported in the shell.
 
 Open:
 - `http://127.0.0.1:8010/`

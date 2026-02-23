@@ -39,7 +39,7 @@ python scripts/trigger_api_run.py --mode smoke --iterations 1 --sample-size 10 -
 
 ## Scope and Versioning
 
-- Default runtime scope is `v0.3` (`runtime_workspaces` + ingested SQLite runs).
+- Default runtime scope is `v0.3.1` (`runtime_workspaces` + ingested SQLite runs).
 - `V1~V6` in visualization pages are style variants only.
 
 ## Issue Labels

@@ -298,6 +298,10 @@ button:hover {
   font-size: 12px;
 }
 
+#pinned-citation {
+  white-space: pre-wrap;
+}
+
 .citation-item {
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -334,6 +338,7 @@ button:hover {
   color: var(--text);
   font-size: 12px;
   line-height: 1.4;
+  white-space: pre-wrap;
   pointer-events: none;
   box-shadow: var(--shadow-soft);
 }

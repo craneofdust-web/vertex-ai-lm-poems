@@ -270,15 +270,19 @@ function renderCitations(citations) {
     why.textContent = citation.why || "";
     block.appendChild(why);
 
+    const sourceText = String(citation.source_text || "").trim();
+    const previewText = sourceText || String(citation.quote || "").trim();
+    const pinnedText = previewText || "(source text unavailable)";
+
     block.addEventListener("mousemove", (event) => {
-      const preview = `${citation.quote || ""}\n\n${citation.why || ""}`.trim();
-      if (preview) showCitationPreview(event, preview);
+      if (previewText) showCitationPreview(event, previewText);
     });
     block.addEventListener("mouseleave", hideCitationPreview);
     block.addEventListener("contextmenu", (event) => {
       event.preventDefault();
       state.pinnedCitation = citation;
-      pinnedCitation.textContent = `${citation.source_title || citation.source_id}: ${citation.quote || ""}`;
+      pinnedCitation.textContent =
+        `${citation.source_title || citation.source_id} (${citation.source_id})\n\n${pinnedText}`;
     });
 
     detailCitations.appendChild(block);

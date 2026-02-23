@@ -1,8 +1,12 @@
 ﻿from __future__ import annotations
 
 import os
+import re
 from dataclasses import dataclass
 from pathlib import Path
+
+
+ENV_LINE_RE = re.compile(r"^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$")
 
 
 def _project_root() -> Path:
@@ -13,6 +17,37 @@ def _project_root() -> Path:
         if (candidate / "backend").is_dir():
             return candidate
     raise RuntimeError(f"unable to detect project root from {here}")
+
+
+def _normalize_env_value(raw: str) -> str:
+    value = raw.strip()
+    if not value:
+        return ""
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
+        return value[1:-1]
+    if " #" in value:
+        return value.split(" #", 1)[0].rstrip()
+    return value
+
+
+def _load_dotenv_defaults(path: Path) -> None:
+    if not path.is_file():
+        return
+    try:
+        content = path.read_text(encoding="utf-8-sig")
+    except OSError:
+        return
+    for line in content.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        match = ENV_LINE_RE.match(line)
+        if not match:
+            continue
+        key, raw_value = match.groups()
+        if key in os.environ:
+            continue
+        os.environ[key] = _normalize_env_value(raw_value)
 
 
 @dataclass(frozen=True)
@@ -33,6 +68,7 @@ class Settings:
 
 def get_settings() -> Settings:
     root = _project_root()
+    _load_dotenv_defaults(root / ".env")
     source_folder_env = os.getenv("POEMS_SOURCE_FOLDER", "").strip()
     source_folder = (
         Path(source_folder_env).expanduser()

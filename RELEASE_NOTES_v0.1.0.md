@@ -18,4 +18,4 @@
 
 ## Upgrade Notes
 - Set `PROJECT_ID` and `POEMS_SOURCE_FOLDER` before running smoke/full pipeline.
-- Current runtime data scope for active API defaults is `v0.3`.
+- Current runtime data scope for active API defaults is `v0.3.1`.

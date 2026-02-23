@@ -19,6 +19,6 @@ This file defines what should and should not be published from this repository.
 
 ## Public Release Rules
 
-- Default public runtime behavior must stay in `v0.3` scope (`runtime_workspaces` + ingested DB runs).
+- Default public runtime behavior must stay in `v0.3.1` scope (`runtime_workspaces` + ingested DB runs).
 - `V1~V6` naming in visualization pages must be described as style variants only.
 - Before publishing, verify `.github/ISSUE_TEMPLATE/config.yml` points to the correct repository security policy URL.

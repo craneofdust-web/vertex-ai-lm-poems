@@ -1586,7 +1586,7 @@ def generate_all(
   <div class="panel">
     <h1>Poetry Skill Tree Visualizations</h1>
     <div>Source: <code>__SOURCE_LABEL__</code></div>
-    <p><strong>Note:</strong> V1~V6 are visualization style variants, not pipeline versions (v0.1/v0.2/v0.3).</p>
+    <p><strong>Note:</strong> V1~V6 are visualization style variants, not pipeline versions (v0.1/v0.2/v0.3.1).</p>
     <ul>
       <li><a href="skill_tree_v1_pixel_rpg.html">V1 - Pixel RPG / Roguelike</a></li>
       <li><a href="skill_tree_v2_civilization.html">V2 - Civilization Style</a></li>

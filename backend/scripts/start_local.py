@@ -80,6 +80,17 @@ def _supports_backend(python_path: Path) -> bool:
     return result.returncode == 0
 
 
+def _supports_generation(python_path: Path) -> bool:
+    probe = "import vertexai; print('ok')"
+    result = subprocess.run(
+        [str(python_path), "-c", probe],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    return result.returncode == 0
+
+
 def _pick_python() -> PythonCandidate | None:
     for candidate in _discover_candidates():
         if _supports_backend(candidate.path):
@@ -127,6 +138,14 @@ def main() -> int:
 
     python_path = chosen.path
     print(f"[ok] Using Python ({chosen.label}): {python_path}")
+    if not _supports_generation(python_path):
+        print(
+            "[warn] vertexai is not installed in this interpreter. "
+            "You can open the site, but /run/smoke and /run/full will fail until "
+            "pipeline dependencies are installed (requirements-pipeline.txt)."
+        )
+        print("[hint] Install pipeline dependencies:")
+        print("  python3 -m pip install -r requirements-pipeline.txt")
 
     if not args.skip_init_db:
         rc = _run([str(python_path), "scripts/init_db.py"], BACKEND_ROOT)

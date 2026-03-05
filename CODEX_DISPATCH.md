@@ -133,4 +133,4 @@ Phase 完成後，更新此文件的狀態：
 | 2. 補基礎測試 | ✅ 已完成 | （未提交） | 新增 `backend/tests/`，`python -m pytest tests/ -q` 通過（6 tests） |
 | 3. 清理 + 環境修復 | ✅ 已完成 | （未提交） | 失敗 run 已移至 `recycle_bin/`；缺 `vertexai` 時 `start_local` 可啟動、`trigger_api_run` fail-fast |
 | 4. requirements 整理 | ✅ 已完成 | （未提交） | 新增 `requirements-dev.txt`、`requirements-pipeline.txt`，README 與腳本提示已更新 |
-| 5. 前端拆分 | ⬜ 可選 | — | 本輪未執行（非阻塞） |
+| 5. 前端拆分 | ✅ 已完成 | （未提交） | `app.js` 拆為 `api-client.js`、`graph-renderer.js`、`panel-manager.js`，`index.html` 改為 module script |

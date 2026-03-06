@@ -129,8 +129,23 @@ Phase 完成後，更新此文件的狀態：
 
 | Phase | 狀態 | Commit hash | 備註 |
 |-------|------|-------------|------|
-| 1. 拆分 main.py | ✅ 已完成 | （未提交） | 已拆為 `routes/` + `services/`，`main.py` 僅保留 app init/mount/router include |
-| 2. 補基礎測試 | ✅ 已完成 | （未提交） | 新增 `backend/tests/`，`python -m pytest tests/ -q` 通過（6 tests） |
-| 3. 清理 + 環境修復 | ✅ 已完成 | （未提交） | 失敗 run 已移至 `recycle_bin/`；缺 `vertexai` 時 `start_local` 可啟動、`trigger_api_run` fail-fast |
-| 4. requirements 整理 | ✅ 已完成 | （未提交） | 新增 `requirements-dev.txt`、`requirements-pipeline.txt`，README 與腳本提示已更新 |
-| 5. 前端拆分 | ✅ 已完成 | （未提交） | `app.js` 拆為 `api-client.js`、`graph-renderer.js`、`panel-manager.js`，`index.html` 改為 module script |
+| 1. 拆分 main.py | ✅ 已完成 | `4b3ff4b` | main.py 890→36 行；routes/ 4 模組 + services/ 2 模組，共 1089 行；`compileall` 通過 |
+| 2. 補基礎測試 | ✅ 已完成 | `10efed3` | `backend/tests/` 含 conftest.py + test_api.py（6 tests），含 mock ingest fixture |
+| 3. 清理 + 環境修復 | ✅ 已完成 | `fa35197` | 失敗 run 已移至 `recycle_bin/`；vertexai 缺失時 start_local 可啟動、trigger_api_run fail-fast |
+| 4. requirements 整理 | ✅ 已完成 | `58752dd` | 新增 `requirements-dev.txt`、`requirements-pipeline.txt`；CODEX_DISPATCH.md 同步 commit |
+| 5. 前端拆分 | ✅ 已完成 | `c0e5c2b` | `app.js` 拆為 `static/modules/` 下 3 個 ES module；`index.html` 改用 `<script type="module">` |
+
+### 外部審計補充（2026-03-06 by Claude Opus via Cowork）
+
+**已驗證通過項目**：
+- `python -m compileall -q backend/app` → 無錯誤
+- main.py 確實從 890 行降到 36 行，僅保留 app init + middleware + router include
+- routes/ 和 services/ 結構合理，責任劃分清晰
+- 測試結構正確，含 mock ingest fixture，不需要真實 GCP 連線
+- 失敗 run `run_full_20260223_101648` 已確認從 `runtime_workspaces/` 移出
+- 前端 JS 拆分位於 `static/modules/`（非 `static/` 根目錄）
+
+**殘留未提交變更（非 Codex 產出，屬 v0.3.1 早期工作）**：
+- Modified: `CHANGELOG.md`（補充 v0.3.1 changelog entries）、`backend/app/ingest.py`（mounting stats 函數）、`backend/static/styles.css`（panel 佈局改進）
+- Untracked: `HANDOFF.md`、`IMPROVEMENT_ROADMAP.md`、`backend/app/audit.py`、`backend/scripts/audit_run.py`、`backend/scripts/sample_fill_quality.py`、`CODEX_CONTROL_BRIEFING.md`
+- 這些是 Codex dispatch 之前就存在但從未 commit 的文件，建議一次性提交

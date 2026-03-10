@@ -32,11 +32,9 @@ def test_resolve_prefers_explicit_files_over_opencode_defaults(tmp_path: Path, m
     relay_dir = tmp_path / ".config" / "opencode"
     relay_dir.mkdir(parents=True)
     key_path = relay_dir / "relay_api_key"
-    key_path.write_text("file-key
-", encoding="utf-8")
+    key_path.write_text("file-key\n", encoding="utf-8")
     base_url_path = relay_dir / "relay_base_url"
-    base_url_path.write_text("https://file.example/openai/v1
-", encoding="utf-8")
+    base_url_path.write_text("https://file.example/openai/v1\n", encoding="utf-8")
     monkeypatch.setattr(relay_profile, "DEFAULT_RELAY_KEY_PATH", key_path)
     monkeypatch.setattr(relay_profile, "DEFAULT_RELAY_BASE_URL_PATH", base_url_path)
     monkeypatch.setattr(

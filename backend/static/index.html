@@ -29,9 +29,11 @@
         <div id="node-list"></div>
       </div>
     </aside>
+    <div id="left-panel-resizer" aria-hidden="true"></div>
 
     <main id="center-panel">
       <div id="toolbar" class="toolbar">
+        <button id="open-left-drawer-btn" class="mobile-only" type="button">Notes</button>
         <button id="toggle-toolbar-btn" type="button">Collapse</button>
         <button id="refresh-btn" type="button">Refresh Graph</button>
         <button id="smoke-btn" type="button">Run Smoke</button>
@@ -101,6 +103,7 @@
     </aside>
   </div>
 
+  <div id="mobile-drawer-backdrop" class="hidden"></div>
   <div id="citation-preview" class="hidden"></div>
   <script type="module" src="/static/app.js"></script>
 </body>

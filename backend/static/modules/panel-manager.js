@@ -53,6 +53,42 @@ export class PanelManager {
     this.elements.citationPreview.classList.add("hidden");
   };
 
+  excerptAroundQuote(sourceText, quote, radius = 180) {
+    const source = String(sourceText || "").trim();
+    const snippet = String(quote || "").trim();
+    if (!source) return "";
+    if (!snippet) return source.slice(0, radius * 2);
+    const startIndex = source.indexOf(snippet);
+    if (startIndex < 0) return source.slice(0, radius * 2);
+    const start = Math.max(0, startIndex - radius);
+    const end = Math.min(source.length, startIndex + snippet.length + radius);
+    return source.slice(start, end);
+  }
+
+  createExpandableSourceText(text) {
+    const wrapper = document.createElement("div");
+    wrapper.className = "citation-excerpt-wrap";
+
+    const excerpt = document.createElement("div");
+    excerpt.className = "citation-excerpt collapsed";
+    excerpt.textContent = text || "(source text unavailable)";
+    wrapper.appendChild(excerpt);
+
+    if ((text || "").length > 320) {
+      const toggle = document.createElement("button");
+      toggle.type = "button";
+      toggle.className = "citation-expand-btn";
+      toggle.textContent = "Expand excerpt";
+      toggle.addEventListener("click", () => {
+        const expanded = excerpt.classList.toggle("collapsed");
+        toggle.textContent = expanded ? "Expand excerpt" : "Collapse excerpt";
+      });
+      wrapper.appendChild(toggle);
+    }
+
+    return wrapper;
+  }
+
   renderCitations(citations) {
     const { detailCitations, pinnedCitation } = this.elements;
 
@@ -70,6 +106,13 @@ export class PanelManager {
       source.textContent = `${citation.source_title || citation.source_id} (${citation.source_id})`;
       block.appendChild(source);
 
+      if (citation.folder_status) {
+        const folder = document.createElement("div");
+        folder.className = "citation-folder-status";
+        folder.textContent = `stage context: ${citation.folder_status}`;
+        block.appendChild(folder);
+      }
+
       const quote = document.createElement("div");
       quote.className = "citation-quote";
       quote.textContent = citation.quote || "(empty quote)";
@@ -81,7 +124,14 @@ export class PanelManager {
       block.appendChild(why);
 
       const sourceText = String(citation.source_text || "").trim();
-      const previewText = sourceText || String(citation.quote || "").trim();
+      const inlineExcerpt = this.excerptAroundQuote(sourceText, citation.quote);
+      const excerptLabel = document.createElement("div");
+      excerptLabel.className = "citation-excerpt-label";
+      excerptLabel.textContent = "Inline excerpt";
+      block.appendChild(excerptLabel);
+      block.appendChild(this.createExpandableSourceText(inlineExcerpt || sourceText || citation.quote));
+
+      const previewText = sourceText || inlineExcerpt || String(citation.quote || "").trim();
       const pinnedText = previewText || "(source text unavailable)";
 
       block.addEventListener("mouseenter", () => {

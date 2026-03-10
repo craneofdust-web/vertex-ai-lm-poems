@@ -14,6 +14,7 @@ from app.config import Settings
 from app.ingest import ingest_run_artifacts
 from app.routes import graph as graph_routes
 from app.routes import health as health_routes
+from app.routes import reviews as review_routes
 from app.routes import runs as runs_routes
 from app.routes import visualization as visualization_routes
 
@@ -46,7 +47,7 @@ def api_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         visualization_script=tmp_path / "viz.py",
     )
 
-    for module in (app_main, graph_routes, health_routes, runs_routes, visualization_routes):
+    for module in (app_main, graph_routes, health_routes, review_routes, runs_routes, visualization_routes):
         monkeypatch.setattr(module, "settings", test_settings)
 
     # Shared in-memory SQLite for endpoint calls within one test.

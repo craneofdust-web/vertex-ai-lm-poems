@@ -6,7 +6,13 @@ from fastapi.staticfiles import StaticFiles
 
 from .config import get_settings
 from .db import init_db
-from .routes import graph_router, health_router, runs_router, visualization_router
+from .routes import (
+    graph_router,
+    health_router,
+    review_sessions_router,
+    runs_router,
+    visualization_router,
+)
 
 
 settings = get_settings()
@@ -34,3 +40,4 @@ app.include_router(health_router)
 app.include_router(visualization_router)
 app.include_router(graph_router)
 app.include_router(runs_router)
+app.include_router(review_sessions_router)

@@ -1,9 +1,9 @@
 const laneOrder = ["craft", "hybrid", "theme"];
-const NODE_CARD_WIDTH = 178;
-const NODE_CARD_HEIGHT = 84;
-const STAGE_X_STEP = 250;
-const NODE_Y_STEP = 116;
-const LANE_BLOCK_GAP = 72;
+const NODE_CARD_WIDTH = 186;
+const NODE_CARD_HEIGHT = 96;
+const STAGE_X_STEP = 270;
+const NODE_Y_STEP = 126;
+const LANE_BLOCK_GAP = 80;
 const GRAPH_TOP_PADDING = 80;
 const GRAPH_LEFT_PADDING = 70;
 
@@ -107,6 +107,16 @@ export class GraphRenderer {
 
     edgeLayer.innerHTML = "";
     if (!state.showEdges) return;
+    const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+    defs.innerHTML = `
+      <marker id="edge-arrow-primary" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="strokeWidth">
+        <path d="M 0 0 L 10 5 L 0 10 z" class="edge-arrow edge-arrow-primary"></path>
+      </marker>
+      <marker id="edge-arrow-secondary" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto" markerUnits="strokeWidth">
+        <path d="M 0 0 L 9 4.5 L 0 9 z" class="edge-arrow edge-arrow-secondary"></path>
+      </marker>
+    `;
+    edgeLayer.appendChild(defs);
     for (const edge of state.edges) {
       const source = state.positions.get(edge.source_id);
       const target = state.positions.get(edge.target_id);
@@ -114,9 +124,17 @@ export class GraphRenderer {
       const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
       path.setAttribute("d", this.buildGraphPath(source, target));
       const classNames = ["edge-line"];
-      if (String(edge.edge_type || "") !== "primary") classNames.push("edge-weak");
+      const edgeKey = `${edge.source_id}=>${edge.target_id}`;
+      const isPrimary = String(edge.edge_type || "") === "primary";
+      const isHighlighted = state.highlightEdgeKeys && state.highlightEdgeKeys.has(edgeKey);
+      if (!isPrimary) classNames.push("edge-weak");
       if (Number(edge.is_direct || 0) !== 1) classNames.push("edge-far");
+      if (isPrimary) classNames.push("edge-primary");
+      if (state.selectedNodeId) {
+        classNames.push(isHighlighted ? "edge-highlighted" : "edge-muted");
+      }
       path.setAttribute("class", classNames.join(" "));
+      path.setAttribute("marker-end", isPrimary ? "url(#edge-arrow-primary)" : "url(#edge-arrow-secondary)");
       edgeLayer.appendChild(path);
     }
   }
@@ -133,10 +151,31 @@ export class GraphRenderer {
       el.type = "button";
       el.className = "graph-node";
       if (state.selectedNodeId === node.id) el.classList.add("active");
+      if (state.highlightNodeIds && state.highlightNodeIds.has(node.id)) el.classList.add("related");
       el.dataset.id = node.id;
       el.dataset.lane = node.lane || "hybrid";
       el.style.left = `${pos.x}px`;
       el.style.top = `${pos.y}px`;
+
+      const badges = document.createElement("div");
+      badges.className = "graph-node-badges";
+
+      const stageBadge = document.createElement("span");
+      stageBadge.className = "graph-node-badge graph-node-badge-stage";
+      stageBadge.textContent = `S${node.stage}`;
+      badges.appendChild(stageBadge);
+
+      const laneBadge = document.createElement("span");
+      laneBadge.className = "graph-node-badge graph-node-badge-lane";
+      laneBadge.textContent = node.lane || "hybrid";
+      badges.appendChild(laneBadge);
+
+      const supportBadge = document.createElement("span");
+      supportBadge.className = "graph-node-badge graph-node-badge-support";
+      supportBadge.textContent = `support ${node.support_count}`;
+      badges.appendChild(supportBadge);
+
+      el.appendChild(badges);
 
       const title = document.createElement("div");
       title.className = "graph-node-title";
@@ -145,7 +184,7 @@ export class GraphRenderer {
 
       const meta = document.createElement("div");
       meta.className = "graph-node-meta";
-      meta.textContent = `S${node.stage} · ${node.lane} · support ${node.support_count}`;
+      meta.textContent = `${node.id} · ${node.tier || "tier?"}`;
       el.appendChild(meta);
 
       el.addEventListener("click", () => this.onSelectNode(node.id, true));
@@ -171,6 +210,7 @@ export class GraphRenderer {
       item.type = "button";
       item.className = "node-list-item";
       if (state.selectedNodeId === node.id) item.classList.add("active");
+      if (state.highlightNodeIds && state.highlightNodeIds.has(node.id)) item.classList.add("related");
       item.dataset.id = node.id;
 
       const title = document.createElement("div");
@@ -195,12 +235,22 @@ export class GraphRenderer {
       } else {
         el.classList.remove("active");
       }
+      if (state.highlightNodeIds && state.highlightNodeIds.has(el.dataset.id)) {
+        el.classList.add("related");
+      } else {
+        el.classList.remove("related");
+      }
     });
     document.querySelectorAll(".node-list-item").forEach((el) => {
       if (el.dataset.id === state.selectedNodeId) {
         el.classList.add("active");
       } else {
         el.classList.remove("active");
+      }
+      if (state.highlightNodeIds && state.highlightNodeIds.has(el.dataset.id)) {
+        el.classList.add("related");
+      } else {
+        el.classList.remove("related");
       }
     });
   }

@@ -129,9 +129,18 @@ def build_run_audit(conn, run_id: str, run_dir: Path | None, default_source_fold
         except json.JSONDecodeError:
             config_json = {}
 
+    ingest_stats = config_json.get("ingest_stats", {}) if isinstance(config_json, dict) else {}
     source_folder_raw = str(config_json.get("source_folder", "")).strip()
     source_folder = Path(source_folder_raw).expanduser() if source_folder_raw else default_source_folder
-    corpus_markdown_files = count_markdown_files(source_folder)
+    source_folder_exists = source_folder.exists() and source_folder.is_dir()
+    current_source_folder_markdown_files = count_markdown_files(source_folder)
+    ingest_corpus_markdown_files = int(ingest_stats.get("corpus_markdown_files", 0) or 0)
+    if ingest_corpus_markdown_files > 0:
+        corpus_markdown_files = ingest_corpus_markdown_files
+        corpus_markdown_files_source = "ingest_stats"
+    else:
+        corpus_markdown_files = current_source_folder_markdown_files
+        corpus_markdown_files_source = "filesystem"
 
     node_count = int(
         conn.execute("SELECT COUNT(*) FROM nodes WHERE run_id = ?", (run_id,)).fetchone()[0]
@@ -189,6 +198,10 @@ def build_run_audit(conn, run_id: str, run_dir: Path | None, default_source_fold
         },
         "config": config_json,
         "source_folder": str(source_folder),
+        "source_folder_exists": source_folder_exists,
+        "current_source_folder_markdown_files": current_source_folder_markdown_files,
+        "ingest_corpus_markdown_files": ingest_corpus_markdown_files,
+        "corpus_markdown_files_source": corpus_markdown_files_source,
         "corpus_markdown_files": corpus_markdown_files,
         "db_stats": db_stats,
         "runtime_artifacts": runtime_stats,

@@ -116,3 +116,37 @@ def test_visualization_routes(api_env):
 
     run_page = client.get("/visualization/run_full_visual/")
     assert run_page.status_code == 200
+
+
+def test_review_sessions_empty(api_env):
+    client = api_env["client"]
+    resp = client.get("/review-sessions")
+    assert resp.status_code == 200
+    assert resp.json() == {"sessions": []}
+
+
+def test_review_sessions_detail(api_env):
+    client = api_env["client"]
+    settings = api_env["settings"]
+    api_env["ingest_mock_run"]("run_full_review", _minimal_nodes(), with_visualization=True)
+    session_dir = settings.runtime_root / "workspace_run_full_review" / "literary_salon" / "session_alpha"
+    session_dir.mkdir(parents=True, exist_ok=True)
+    (session_dir / "run_meta.json").write_text(
+        '{"run_id":"run_full_review","session_id":"session_alpha","target_count":1}',
+        encoding="utf-8",
+    )
+    (session_dir / "session_status.json").write_text(
+        '{"run_id":"run_full_review","session_id":"session_alpha","target_count":1,"batch_count":1,"consensus_report_ready":false}',
+        encoding="utf-8",
+    )
+
+    list_resp = client.get("/review-sessions")
+    assert list_resp.status_code == 200
+    sessions = list_resp.json()["sessions"]
+    assert any(item["session_id"] == "session_alpha" for item in sessions)
+
+    detail_resp = client.get("/review-sessions/run_full_review/session_alpha")
+    assert detail_resp.status_code == 200
+    payload = detail_resp.json()
+    assert payload["run_meta"]["session_id"] == "session_alpha"
+    assert payload["session_status"]["target_count"] == 1

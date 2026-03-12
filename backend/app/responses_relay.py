@@ -152,6 +152,8 @@ def post_responses_stream(
     api_key: str,
     payload: dict[str, Any],
     timeout: float = 180.0,
+    max_attempts: int = 6,
+    stop_on_status: Iterable[int] | None = None,
 ) -> str:
     normalized_base = base_url.rstrip("/")
     endpoint = normalized_base if normalized_base.endswith("/responses") else f"{normalized_base}/responses"
@@ -167,13 +169,16 @@ def post_responses_stream(
         },
         method="POST",
     )
-    max_attempts = 6
+    max_attempts = max(1, int(max_attempts))
+    stop_on = {int(code) for code in (stop_on_status or [])}
     for attempt in range(1, max_attempts + 1):
         try:
             with request.urlopen(req, timeout=timeout, context=ssl_context) as response:
                 return collect_stream_output(response)
         except urlerror.HTTPError as exc:
             status = int(getattr(exc, "code", 0) or 0)
+            if status in stop_on:
+                raise
             retryable = status == 429 or 500 <= status < 600
             if not retryable or attempt >= max_attempts:
                 raise

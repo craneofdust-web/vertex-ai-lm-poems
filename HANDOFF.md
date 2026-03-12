@@ -117,3 +117,18 @@ Gate D（升格前人工驗收）
 - 已在 `GET /runs/{run_id}/audit` 端做 legacy path 清理，避免在審計結果中暴露舊命名作為主路徑。
 - 後續若重跑 full，新的產物會自然改成當前路徑命名。
 
+## OpenCode Handoff 2026-03-12 18:33
+Branch: C Vertex POEM 庫
+Workdir: C:\Users\user\OneDrive\代碼庫與projects\vertex ai LM POEMS
+Objective: 以評審會共識+多視角並行產生新技能樹節點，合併生成新版 master skill web，重新掛載並輸出視覺化。
+Done: 完成四波評審（522/522）並生成共識報告；修復 responses wave 的 target_id mismatch；新增 run_logs 回報；產出 `review_dossier.json`（同一詩所有評審意見）；`brainstorm_skill_webs.py` 支援評審會摘要注入與 relay backend；`build_master_and_fill_mounting.py` 支援 `EXTRA_FRAGMENT_PATHS`。
+In Progress: A/B/C/E 視角 fragments 未完整產出（僅 D 完整，E 部分）；等待補齊後合併新版 master + 重新掛載 + 視覺化。
+Next: 1) 以 relay 重新跑 A/B/C/E 直到各 10 份 fragment；2) 執行 `build_master_and_fill_mounting.py` 產生新 run 的 `master_skill_web.json` 與掛載；3) 執行 `generate_skill_tree_visualizations.py` 輸出新版視覺化。
+Blockers: A/B/C/E fragment 仍缺；relay 需可用的 base_url/api_key（勿寫入手動 secrets）。
+Running Processes: None（外部 A~E 視窗已由使用者關閉）。
+Key Files: runtime_workspaces/run_full_20260222_192855/literary_salon/salon_leishen_full_20260309_01/consensus_report.json; runtime_workspaces/run_full_20260222_192855/literary_salon/salon_leishen_full_20260309_01/review_dossier.json; runtime_workspaces/run_full_20260222_192855/runs/run_full_20260222_192855/master_skill_web.json; runtime_workspaces/run_full_20260222_192855/runs/run_full_20260222_192855/poem_mounting_full.json; brainstorm_skill_webs.py; build_master_and_fill_mounting.py; backend/scripts/build_review_dossier.py
+Commands Run: python backend/scripts/merge_review_waves.py --run-id run_full_20260222_192855 --session-id salon_leishen_full_20260309_01; python backend/scripts/review_session_status.py --run-id run_full_20260222_192855 --session-id salon_leishen_full_20260309_01; python backend/scripts/build_review_dossier.py --run-id run_full_20260222_192855 --session-id salon_leishen_full_20260309_01; python backend/scripts/run_responses_batch_group.py ... (theme/counter reruns); python backend/scripts/run_responses_wave.py ... (target_id fix tests)
+Tests/Checks: review_session_status（全波完成）；merge_review_waves（consensus_report_ready=true）。
+Risks/Notes: `brainstorm_skill_webs.py` 需設定 LLM_BACKEND=relay 才不會走 GCP；`build_master_and_fill_mounting.py` fill 階段仍走 Vertex（若無 GCP 可先 `--skip-fill` 或後續再改 relay）；遵守 DISPATCH/JP 先詢號規則。
+Resume Command: cd "/Users/liujiugao/Library/CloudStorage/OneDrive-個人/代碼庫與projects/vertex ai LM POEMS" && python3 -c "from pathlib import Path; print('craft', len(list(Path('archives/skill_web_fragments_craft').glob('skill_web_fragment_*.json')))); print('theme', len(list(Path('archives/skill_web_fragments_theme').glob('skill_web_fragment_*.json')))); print('counter', len(list(Path('archives/skill_web_fragments_counter').glob('skill_web_fragment_*.json')))); print('revision', len(list(Path('archives/skill_web_fragments_revision').glob('skill_web_fragment_*.json')))); print('experimental', len(list(Path('archives/skill_web_fragments_experimental').glob('skill_web_fragment_*.json'))))"
+Git Status: ## codex/recovery-vertex-20260310...origin/codex/recovery-vertex-20260310 | M backend/app/responses_relay.py | M backend/scripts/run_responses_batch_group.py | M backend/scripts/run_responses_wave.py | M brainstorm_skill_webs.py | M build_master_and_fill_mounting.py | ? archives/ | ? backend/scripts/build_review_dossier.py

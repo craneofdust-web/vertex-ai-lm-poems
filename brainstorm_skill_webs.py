@@ -1,16 +1,31 @@
-﻿import json
+import importlib
+import json
 import math
 import os
 import random
 import re
+import sys
 import time
 from datetime import datetime, timedelta
 from difflib import SequenceMatcher
+from pathlib import Path
 from typing import Any, Dict, List, Tuple
+from urllib import error as urlerror
 
 import vertexai
 from google.api_core import exceptions as gcp_exceptions
 from vertexai.generative_models import GenerativeModel
+
+BACKEND_ROOT = Path(__file__).resolve().parent / "backend"
+if BACKEND_ROOT.is_dir() and str(BACKEND_ROOT) not in sys.path:
+    sys.path.insert(0, str(BACKEND_ROOT))
+
+_stdout_reconfigure = getattr(sys.stdout, "reconfigure", None)
+if callable(_stdout_reconfigure):
+    _stdout_reconfigure(encoding="utf-8")
+_stderr_reconfigure = getattr(sys.stderr, "reconfigure", None)
+if callable(_stderr_reconfigure):
+    _stderr_reconfigure(encoding="utf-8")
 
 # ==========================================
 # 1. 專案設定
@@ -45,6 +60,16 @@ WRITE_MARKDOWN_REPORT = os.getenv("WRITE_MARKDOWN_REPORT", "1") == "1"
 WRITE_MOUNTING_INDEX = os.getenv("WRITE_MOUNTING_INDEX", "1") == "1"
 STRICT_VALIDATION = os.getenv("STRICT_VALIDATION", "0") == "1"
 ETA_POST_SECONDS = int(os.getenv("ETA_POST_SECONDS", "45"))
+CONSENSUS_REPORT_PATH = os.getenv("CONSENSUS_REPORT_PATH", "").strip()
+SYSTEM_INSTRUCTION_OVERRIDE = os.getenv("SYSTEM_INSTRUCTION_OVERRIDE", "").strip()
+SYSTEM_INSTRUCTION_APPEND = os.getenv("SYSTEM_INSTRUCTION_APPEND", "").strip()
+SALON_MAX_BULLETS = int(os.getenv("SALON_MAX_BULLETS", "3"))
+LLM_BACKEND = os.getenv("LLM_BACKEND", "vertex").strip().lower()
+RELAY_MODEL = os.getenv("RELAY_MODEL", "gpt-5.4").strip()
+RELAY_REASONING_EFFORT = os.getenv("RELAY_REASONING_EFFORT", "xhigh").strip()
+RELAY_TIMEOUT = float(os.getenv("RELAY_TIMEOUT", "240"))
+RELAY_MAX_ATTEMPTS = int(os.getenv("RELAY_MAX_ATTEMPTS", "6"))
+RELAY_STOP_ON_429 = os.getenv("RELAY_STOP_ON_429", "1") == "1"
 
 SYSTEM_INSTRUCTION = """
 你是一位兼具「前衛文學評論家」與「硬核 RPG 系統設計師」雙重身份的專家。
@@ -201,14 +226,77 @@ def select_batch(
     return batch
 
 
-def build_batch_text(sampled_poems: List[Dict[str, str]]) -> str:
+def _clip_list(items: Any, limit: int) -> List[str]:
+    if not isinstance(items, list):
+        return []
+    out: List[str] = []
+    for item in items:
+        text = str(item or "").strip()
+        if not text:
+            continue
+        out.append(text)
+        if len(out) >= limit:
+            break
+    return out
+
+
+def _format_salon_summary(payload: Dict[str, Any]) -> str:
+    consensus = str(payload.get("consensus") or "").strip()
+    stance_counts = payload.get("stance_counts", {}) if isinstance(payload.get("stance_counts"), dict) else {}
+    lines = []
+    if consensus:
+        lines.append(f"- consensus: {consensus}")
+    if stance_counts:
+        stance_bits = ", ".join(f"{k}:{v}" for k, v in stance_counts.items())
+        lines.append(f"- stance_counts: {stance_bits}")
+    for label, key in (
+        ("what_works", "what_works"),
+        ("structural_gaps", "structural_gaps"),
+        ("anticipated_later_work", "anticipated_later_work"),
+    ):
+        items = _clip_list(payload.get(key), SALON_MAX_BULLETS)
+        if not items:
+            continue
+        lines.append(f"- {label}:")
+        for item in items:
+            lines.append(f"  - {item}")
+    return "\n".join(lines).strip()
+
+
+def _load_consensus_map(path: str) -> Dict[str, Dict[str, Any]]:
+    if not path:
+        return {}
+    try:
+        with open(path, "r", encoding="utf-8") as file_obj:
+            data = json.load(file_obj)
+    except Exception as error:
+        print(f"⚠️ 無法讀取評審會報告: {error}")
+        return {}
+    targets = data.get("targets", []) if isinstance(data, dict) else []
+    if not isinstance(targets, list):
+        return {}
+    return {
+        str(item.get("target_id") or "").strip(): item
+        for item in targets
+        if isinstance(item, dict) and str(item.get("target_id") or "").strip()
+    }
+
+
+def build_batch_text(sampled_poems: List[Dict[str, str]], consensus_by_id: Dict[str, Dict[str, Any]] | None = None) -> str:
     blocks = []
     for poem in sampled_poems:
+        consensus_payload = consensus_by_id.get(poem["id"]) if consensus_by_id else None
+        salon_block = ""
+        if isinstance(consensus_payload, dict):
+            summary = _format_salon_summary(consensus_payload)
+            if summary:
+                salon_block = f"\n【評審會摘要】\n{summary}\n"
         blocks.append(
             f"【篇名：{poem['filename']}】\n"
             f"【資料夾狀態：{poem['folder']}】\n"
             f"【來源：{poem['id']}】\n"
             f"{poem['content']}"
+            f"{salon_block}"
         )
     separator = "\n" + "=" * 30 + "\n"
     return separator.join(blocks) + "\n"
@@ -226,11 +314,62 @@ def parse_json_response(raw_text: str):
     return json.loads(text)
 
 
-def render_system_instruction() -> str:
+def _extract_json_array(raw_text: str) -> list[dict[str, Any]]:
+    text = raw_text.strip()
+    if text.startswith("```"):
+        lines = text.splitlines()
+        if lines and lines[0].startswith("```"):
+            lines = lines[1:]
+        if lines and lines[-1].strip() == "```":
+            lines = lines[:-1]
+        text = "\n".join(lines).strip()
+    decoder = json.JSONDecoder()
+    for index, char in enumerate(text):
+        if char != "[":
+            continue
+        try:
+            payload, _ = decoder.raw_decode(text, index)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(payload, list):
+            return payload
+    raise ValueError("no valid JSON array found in response text")
+
+
+def _parse_json_array_response(raw_text: str) -> list[dict[str, Any]]:
+    parsed = parse_json_response(raw_text)
+    if isinstance(parsed, list):
+        return parsed
+    if isinstance(parsed, dict):
+        nodes = parsed.get("nodes")
+        if isinstance(nodes, list):
+            return nodes
+    return _extract_json_array(raw_text)
+
+
+def _load_relay_dependencies():
+    try:
+        responses_relay = importlib.import_module("app.responses_relay")
+        relay_profile = importlib.import_module("app.relay_profile")
+    except Exception as exc:
+        raise RuntimeError("relay backend unavailable") from exc
     return (
-        SYSTEM_INSTRUCTION.replace("{min_citations}", str(MIN_CITATIONS_PER_NODE))
-        .replace("{max_citations}", str(MAX_CITATIONS_PER_NODE))
+        responses_relay.build_responses_payload,
+        responses_relay.post_responses_stream,
+        relay_profile.resolve_base_url,
+        relay_profile.resolve_api_key,
     )
+
+
+def render_system_instruction() -> str:
+    base = SYSTEM_INSTRUCTION.replace("{min_citations}", str(MIN_CITATIONS_PER_NODE)).replace(
+        "{max_citations}", str(MAX_CITATIONS_PER_NODE)
+    )
+    if SYSTEM_INSTRUCTION_OVERRIDE:
+        base = SYSTEM_INSTRUCTION_OVERRIDE
+    if SYSTEM_INSTRUCTION_APPEND:
+        base = f"{base}\n\n{SYSTEM_INSTRUCTION_APPEND}".strip()
+    return base
 
 
 def normalize_for_match(text: str) -> str:
@@ -546,6 +685,61 @@ def generate_fragment(
     raise last_error
 
 
+def generate_fragment_relay(
+    batch_text: str,
+    sampled_poems: List[Dict[str, str]],
+) -> List[Dict[str, Any]]:
+    prompt = f"{render_system_instruction()}\n\n【本次隨機抽樣的詩歌文本】：\n{batch_text}"
+    poem_index = build_poem_index(sampled_poems)
+    build_responses_payload, post_responses_stream, resolve_base_url, resolve_api_key = _load_relay_dependencies()
+    base_url = resolve_base_url(env=os.environ)
+    api_key = resolve_api_key(env=os.environ)
+    if not base_url or not api_key:
+        raise ValueError("missing relay base_url or api_key")
+    last_error: Exception | None = None
+
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            payload = build_responses_payload(
+                {"messages": [{"role": "user", "content": prompt}]},
+                model=RELAY_MODEL,
+                reasoning_effort=RELAY_REASONING_EFFORT,
+            )
+            response_text = post_responses_stream(
+                base_url=base_url,
+                api_key=api_key,
+                payload=payload,
+                timeout=RELAY_TIMEOUT,
+                max_attempts=max(1, int(RELAY_MAX_ATTEMPTS)),
+                stop_on_status=[429] if RELAY_STOP_ON_429 else None,
+            )
+            parsed = _parse_json_array_response(response_text)
+            return validate_fragment(parsed, poem_index)
+        except urlerror.HTTPError as error:
+            last_error = error
+            status = int(getattr(error, "code", 0) or 0)
+            if status == 429 and RELAY_STOP_ON_429:
+                raise
+            if attempt == MAX_RETRIES:
+                break
+            sleep_seconds = BASE_RETRY_SECONDS * (2 ** (attempt - 1))
+            print(f"[warn] relay http {status or 'error'}, retrying in {sleep_seconds}s")
+            time.sleep(sleep_seconds)
+        except (json.JSONDecodeError, ValueError) as error:
+            last_error = error
+            if attempt == MAX_RETRIES:
+                break
+            print(f"[warn] response parse error, retrying ({attempt}/{MAX_RETRIES})")
+        except Exception as error:
+            last_error = error
+            if attempt == MAX_RETRIES:
+                break
+            print(f"[warn] relay failure, retrying ({attempt}/{MAX_RETRIES})")
+
+    assert last_error is not None
+    raise last_error
+
+
 def print_coverage_summary(draw_counts: Dict[str, int], target_coverage: int) -> None:
     counts = list(draw_counts.values())
     if not counts:
@@ -701,15 +895,23 @@ def main() -> None:
     if RANDOM_SEED is not None:
         random.seed(RANDOM_SEED)
 
-    print(f"正在初始化 Vertex AI (專案: {PROJECT_ID})...")
-    vertexai.init(project=PROJECT_ID, location=LOCATION)
-    print(f"模型候選順序: {MODEL_CANDIDATES}")
-    model_name, model = select_model(MODEL_CANDIDATES)
-    print(f"✅ 已選定模型: {model_name}")
+    model = None
+    backend = LLM_BACKEND or "vertex"
+    if backend == "relay":
+        print(f"[info] backend=relay model={RELAY_MODEL}")
+    else:
+        print(f"正在初始化 Vertex AI (專案: {PROJECT_ID})...")
+        vertexai.init(project=PROJECT_ID, location=LOCATION)
+        print(f"模型候選順序: {MODEL_CANDIDATES}")
+        model_name, model = select_model(MODEL_CANDIDATES)
+        print(f"已選定模型: {model_name}")
 
     all_poems = scan_markdown_poems(FOLDER_PATH, EXCLUDE_DIRS)
     file_count = len(all_poems)
     print(f"✅ 成功讀取 {file_count} 篇 Markdown 詩歌。")
+    consensus_by_id = _load_consensus_map(CONSENSUS_REPORT_PATH)
+    if consensus_by_id:
+        print(f"✅ 已載入評審會摘要: {len(consensus_by_id)} 篇")
 
     if file_count == 0:
         print("警告：沒有找到任何 Markdown 檔案，程式終止。")
@@ -760,13 +962,18 @@ def main() -> None:
             break
 
         print(f"\n--- 開始生成第 {i+1} 份局部技能譜系（樣本數: {len(sampled_poems)}）---")
-        batch_text = build_batch_text(sampled_poems)
+        batch_text = build_batch_text(sampled_poems, consensus_by_id)
         for poem in sampled_poems:
             sampled_counts[poem["id"]] += 1
 
         try:
-            fragment = generate_fragment(model, batch_text, sampled_poems)
+            if backend == "relay":
+                fragment = generate_fragment_relay(batch_text, sampled_poems)
+            else:
+                assert model is not None
+                fragment = generate_fragment(model, batch_text, sampled_poems)
             output_json = f"skill_web_fragment_{i+1}.json"
+            output_md = ""
             with open(output_json, "w", encoding="utf-8") as file_obj:
                 json.dump(fragment, file_obj, ensure_ascii=False, indent=2)
             if WRITE_MARKDOWN_REPORT:
@@ -776,7 +983,7 @@ def main() -> None:
             for poem in sampled_poems:
                 successful_counts[poem["id"]] += 1
             generated_count += 1
-            if WRITE_MARKDOWN_REPORT:
+            if WRITE_MARKDOWN_REPORT and output_md:
                 print(f"✅ 第 {i+1} 份局部譜系已儲存為 {output_json} / {output_md}")
             else:
                 print(f"✅ 第 {i+1} 份局部譜系已儲存為 {output_json}")

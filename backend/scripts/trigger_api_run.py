@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -14,6 +15,55 @@ if str(BACKEND_ROOT) not in sys.path:
 from fastapi.testclient import TestClient
 
 from app.main import app
+
+
+def _ensure_generation_dependencies() -> bool:
+    try:
+        import vertexai  # noqa: F401
+    except ModuleNotFoundError:
+        print("[error] Missing dependency: vertexai")
+        print("[hint] Install backend requirements in the active Python environment:")
+        print("  python3 -m pip install -r requirements-pipeline.txt")
+        return False
+    return True
+
+
+def _count_markdown_files(source_folder: Path) -> int:
+    if not source_folder.exists() or not source_folder.is_dir():
+        return 0
+    try:
+        return sum(1 for _ in source_folder.rglob("*.md"))
+    except OSError:
+        return 0
+
+
+def _warn_if_low_coverage_full(mode: str, body: dict[str, object]) -> None:
+    if mode != "full":
+        return
+    iterations = int(body.get("iterations") or 0)
+    sample_size = int(body.get("sample_size") or 0)
+    if iterations <= 0 or sample_size <= 0:
+        print("[info] full run uses backend default coverage profile (recommended for v0.3.1).")
+        return
+
+    estimated_draws = iterations * sample_size
+    source_hint = str(body.get("source_folder") or os.getenv("POEMS_SOURCE_FOLDER", "")).strip()
+    corpus_markdown_files = 0
+    if source_hint:
+        corpus_markdown_files = _count_markdown_files(Path(source_hint).expanduser())
+
+    if corpus_markdown_files > 0 and estimated_draws < corpus_markdown_files:
+        print(
+            f"[warn] low coverage config: iterations*sample_size={estimated_draws} "
+            f"< corpus_markdown_files={corpus_markdown_files}. "
+            "For large corpora, this usually under-covers cited sources."
+        )
+        return
+    if estimated_draws < 500:
+        print(
+            f"[warn] low coverage config: iterations*sample_size={estimated_draws}. "
+            "For 500+ corpus targets, prefer draws >= 500."
+        )
 
 
 def parse_args() -> argparse.Namespace:
@@ -33,6 +83,8 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
+    if not _ensure_generation_dependencies():
+        raise SystemExit(1)
 
     body: dict[str, object] = {}
     if args.iterations > 0:
@@ -55,12 +107,20 @@ def main() -> None:
     endpoint = "/run/full" if args.mode == "full" else "/run/smoke"
     print(f"[{datetime.now().isoformat(timespec='seconds')}] start {endpoint}")
     print(f"payload={json.dumps(body, ensure_ascii=False)}")
+    _warn_if_low_coverage_full(args.mode, body)
 
-    client = TestClient(app)
+    client = TestClient(app, raise_server_exceptions=False)
     response = client.post(endpoint, json=body)
-    payload = response.json()
+    try:
+        payload = response.json()
+    except ValueError:
+        payload = {"detail": response.text}
 
-    out_path = Path(args.out) if args.out else Path(f"{args.mode}_result_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json")
+    out_path = (
+        Path(args.out)
+        if args.out
+        else Path(f"{args.mode}_result_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json")
+    )
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
@@ -68,6 +128,10 @@ def main() -> None:
     run_id = payload.get("ingest", {}).get("run_id") if isinstance(payload, dict) else ""
     print(f"run_id={run_id}")
     print(f"result_file={out_path}")
+    if response.status_code >= 400:
+        detail = payload.get("detail") if isinstance(payload, dict) else payload
+        print(f"[error] API returned {response.status_code}: {detail}")
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":

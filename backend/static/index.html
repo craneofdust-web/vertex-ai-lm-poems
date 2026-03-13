@@ -10,27 +10,39 @@
 <body>
   <div id="app">
     <aside id="left-panel">
-      <div class="panel-title">Nodes</div>
-      <div class="control-group">
-        <label for="run-id-input">Run ID</label>
-        <div class="inline-row">
-          <input id="run-id-input" type="text" placeholder="latest" />
-          <button id="load-run-btn" type="button">Load</button>
+      <div class="panel-title-row">
+        <div class="panel-title">Notes</div>
+        <button id="toggle-left-panel-btn" type="button">Collapse</button>
+      </div>
+      <div id="left-panel-body">
+        <div class="control-group">
+          <label for="run-id-input">Run ID</label>
+          <div class="inline-row">
+            <input id="run-id-input" type="text" placeholder="latest" />
+            <button id="load-run-btn" type="button">Load</button>
+          </div>
         </div>
+        <div class="control-group">
+          <label for="search-input">Search</label>
+          <input id="search-input" type="text" placeholder="node name/id" />
+        </div>
+        <div id="node-list"></div>
       </div>
-      <div class="control-group">
-        <label for="search-input">Search</label>
-        <input id="search-input" type="text" placeholder="node name/id" />
-      </div>
-      <div id="node-list"></div>
     </aside>
+    <div id="left-panel-resizer" aria-hidden="true"></div>
 
     <main id="center-panel">
       <div id="toolbar" class="toolbar">
+        <button id="open-left-drawer-btn" class="mobile-only" type="button">Notes</button>
         <button id="toggle-toolbar-btn" type="button">Collapse</button>
         <button id="refresh-btn" type="button">Refresh Graph</button>
         <button id="smoke-btn" type="button">Run Smoke</button>
         <button id="full-btn" type="button">Run Full</button>
+        <button id="toggle-edges-btn" type="button">Hide Lines</button>
+        <label class="inline-switch" for="include-weak-edges">
+          <input id="include-weak-edges" type="checkbox" />
+          Include weak/far
+        </label>
         <span id="status-text">idle</span>
       </div>
       <div id="toolbar-collapsed" class="toolbar-collapsed hidden">
@@ -49,6 +61,17 @@
       <div id="details-body" class="hidden">
         <h2 id="detail-name"></h2>
         <div id="detail-meta" class="meta-line"></div>
+
+        <section class="detail-section detail-section-player">
+          <h3>Citations</h3>
+          <div id="detail-citations"></div>
+        </section>
+
+        <section class="detail-section detail-section-player">
+          <h3>Pinned Citation</h3>
+          <div id="pinned-citation" class="subtle">none</div>
+        </section>
+
         <div id="detail-description"></div>
         <div id="detail-unlock" class="subtle"></div>
 
@@ -76,21 +99,12 @@
           <div><strong>Downstream</strong></div>
           <div id="lineage-downstream"></div>
         </section>
-
-        <section class="detail-section">
-          <h3>Citations</h3>
-          <div id="detail-citations"></div>
-        </section>
-
-        <section class="detail-section">
-          <h3>Pinned Citation</h3>
-          <div id="pinned-citation" class="subtle">none</div>
-        </section>
       </div>
     </aside>
   </div>
 
+  <div id="mobile-drawer-backdrop" class="hidden"></div>
   <div id="citation-preview" class="hidden"></div>
-  <script src="/static/app.js"></script>
+  <script type="module" src="/static/app.js"></script>
 </body>
 </html>

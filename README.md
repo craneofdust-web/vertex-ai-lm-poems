@@ -2,7 +2,7 @@
 
 Vertex AI powered pipeline for building a Poetry Skill Web from Markdown poem corpora.
 
-Chinese guide: `README.zh-TW.md`
+Chinese guide: `README.zh-TW.md` (entry alias: `中文說明.md`)
 
 ## Versioning
 
@@ -42,6 +42,7 @@ python scripts/start_local.py --reload
 ```
 
 On macOS/Linux, replace `python` with `python3` if needed.
+`requirements.txt` only contains runtime dependencies; install `requirements-pipeline.txt` when using `/run/*`.
 
 Open:
 - `http://127.0.0.1:8010/`
@@ -76,6 +77,13 @@ python3 scripts/start_local.py --reload
 
 If you are already inside a broken `.venv`, run `deactivate` first, then retry.
 
+If pipeline endpoints (`/run/smoke`, `/run/full`) fail with `Missing dependency: vertexai`, install requirements in the same interpreter used to start backend:
+
+```bash
+cd backend
+python3 -m pip install -r requirements-pipeline.txt
+```
+
 ## Environment Variables
 
 Copy `.env.example` to `.env` and fill values.
@@ -101,9 +109,13 @@ From `backend`:
 # smoke
 python scripts/trigger_api_run.py --mode smoke --iterations 2 --sample-size 20 --max-stage-jump 2 --out logs/last_smoke_result.json
 
-# full
-python scripts/trigger_api_run.py --mode full --iterations 6 --sample-size 30 --max-stage-jump 2 --out logs/last_full_result.json
+# full (v0.3.1 recommended coverage profile)
+python scripts/trigger_api_run.py --mode full --max-stage-jump 2 --out logs/last_full_result.json
 ```
+
+Notes:
+- Do not use legacy quick full settings such as `--iterations 6 --sample-size 30` for 500+ corpora. This often under-covers citations.
+- If you need explicit full parameters, start from `--iterations 30 --sample-size 50` and tune based on corpus size.
 
 ## Skill Tree Index Entry Points
 
@@ -120,6 +132,105 @@ Note:
 - API default scope is active runtime runs (`runtime_workspaces`, v0.3.1). Legacy/reference snapshots are not used by default routes.
 - Visualization routes list/serve only runtime runs that are already ingested into the SQLite DB.
 - `V1~V6` labels inside a run index represent visualization style variants, not pipeline versions (`v0.1/v0.2/v0.3.1`).
+
+## Coverage Audit
+
+Use run audit to distinguish corpus scan coverage vs graph citation coverage.
+
+From `backend`:
+
+```powershell
+python scripts/audit_run.py --run-id run_full_20260222_192855 --out logs/run_audit.json
+```
+
+API:
+
+- `GET /runs/{run_id}/audit`
+- `GET /runs` also includes per-run `stats`; when available it contains mounting coverage fields (`mounting_full_*`, `mounting_seed_*`).
+
+## Fill QA Gate (before promoting fill matches)
+
+For quality gating, sample `fill_assignments.json` and validate whether quoted text exists in original sources:
+
+```powershell
+python scripts/sample_fill_quality.py --run-id run_full_20260222_192855 --sample-size 40 --seed 42 --out-prefix logs/fill_quality_192855
+```
+
+Outputs:
+- `logs/fill_quality_192855.json`
+- `logs/fill_quality_192855.md`
+
+Interpretation:
+- `full_matches_from_poem_mounting_full` is total full mounting matches.
+- `seed_matches_from_poem_mounting_seed` is the initial seed matches.
+- `fill_matches_from_fill_assignments` is fill-only (typically `full - seed`).
+- Promote fill results into citation records only after sample QA is acceptable.
+
+## Literary Salon Workflow
+
+The first artifact-first literary salon workflow runs on top of an existing valid run.
+
+From `backend`:
+
+```bash
+# export full-poem review targets from a valid run
+python3 scripts/export_review_batch.py --run-id run_full_20260222_192855 --session-id salon_demo --source-folder "/path/to/poem-corpus" --batch-size 50
+
+# run resumable rubric waves
+python3 scripts/run_review_wave.py --run-id run_full_20260222_192855 --session-id salon_demo --wave-id craft_pass
+python3 scripts/run_review_wave.py --run-id run_full_20260222_192855 --session-id salon_demo --wave-id theme_pass
+python3 scripts/run_review_wave.py --run-id run_full_20260222_192855 --session-id salon_demo --wave-id counter_reading_pass
+python3 scripts/run_review_wave.py --run-id run_full_20260222_192855 --session-id salon_demo --wave-id revision_synthesis_pass
+
+# merge consensus and inspect session status
+python3 scripts/merge_review_waves.py --run-id run_full_20260222_192855 --session-id salon_demo
+python3 scripts/review_session_status.py --run-id run_full_20260222_192855 --session-id salon_demo
+```
+
+Artifacts land under `runtime_workspaces/<run_workspace>/literary_salon/<session_id>/`.
+
+Read-only API routes:
+
+- `GET /review-sessions`
+- `GET /review-sessions/{run_id}/{session_id}`
+
+### External GPT / Relay Workflow
+
+If the literary-salon review should run outside the local deterministic fallback, export prompt jobs and import results back into the same session.
+
+From `backend`:
+
+```bash
+# 0) bootstrap ~/.config/opencode/relay_* from the local opencode config
+python3 scripts/bootstrap_relay_home.py
+
+# optional: smoke-test the configured relay before spending a review batch
+python3 scripts/probe_relay.py --expect-model gpt-5.4
+
+# 1) export one wave as prompt jobs
+python3 scripts/export_wave_prompts.py --run-id run_full_20260222_192855 --session-id salon_demo --wave-id craft_pass --batch-id batch_001
+
+# 2) either have another system answer the prompt file, or call the OpenAI-compatible relay directly
+python3 scripts/run_responses_wave.py --run-id run_full_20260222_192855 --session-id salon_demo --wave-id craft_pass --batch-id batch_001 --model gpt-5.3-codex --reasoning-effort xhigh
+
+# smoke-test only the first target in a batch
+python3 scripts/run_responses_wave.py --run-id run_full_20260222_192855 --session-id salon_demo --wave-id craft_pass --batch-id batch_001 --model gpt-5.3-codex --reasoning-effort xhigh --max-jobs 1
+
+# 3) if results are produced elsewhere as JSONL, import them manually
+python3 scripts/import_review_wave.py --run-id run_full_20260222_192855 --session-id salon_demo --wave-id craft_pass --batch-id batch_001 --input path/to/results.jsonl
+```
+
+Relay compatibility notes captured from local setup:
+
+- use `GET /models` for model probing
+- use `POST /responses` for generation
+- set `stream=true`
+- send `input` as a list, not a string
+- do not assume `/chat/completions` exists on the relay
+- current locally observed working model family: `gpt-5.4` (live-verified), `gpt-5.3-codex`, `gpt-5.2-codex`, `gpt-5`, related variants
+- `run_responses_wave.py` now resolves relay settings in this order: CLI args -> env vars -> `~/.config/opencode/relay_base_url` / `relay_api_key` -> `~/.config/opencode/opencode.json`
+- current verified relay base URL: `https://www.leishen-ai.cn/openai`
+- note: `/models` may lag behind actual acceptance; `gpt-5.4` has been verified via live `/responses` even when absent from the listing
 
 ## Data and Privacy Policy
 
@@ -145,6 +256,10 @@ Note:
 - Run minimum validation:
   - `python -m compileall -q backend/app`
   - start backend and verify `/health`, `/runs`, `/graph`, `/visualizations`
+
+## Improvement Roadmap
+
+- See `IMPROVEMENT_ROADMAP.md` for prioritized frontend/backend follow-up targets and decision-required UI options.
 
 ## Contributing
 

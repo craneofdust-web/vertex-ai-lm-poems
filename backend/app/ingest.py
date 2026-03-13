@@ -203,6 +203,84 @@ def _extract_fragment_index(path: Path) -> int:
     return int(match.group(1))
 
 
+def _mount_match_count(row: Any) -> int:
+    if not isinstance(row, dict):
+        return 0
+    raw = row.get("match_count")
+    if raw is None:
+        matched_nodes = row.get("matched_nodes")
+        if isinstance(matched_nodes, list):
+            raw = len(matched_nodes)
+        else:
+            raw = 0
+    try:
+        return max(0, int(raw))
+    except (TypeError, ValueError):
+        return 0
+
+
+def _mounting_stats(path: Path) -> Dict[str, Any]:
+    if not path.is_file():
+        return {
+            "poems_total": 0,
+            "poems_with_match": 0,
+            "poems_without_match": 0,
+            "match_coverage_percent": 0.0,
+            "total_matches": 0,
+            "avg_match_count": 0.0,
+            "min_match_count": 0,
+            "max_match_count": 0,
+            "multi_match_poems": 0,
+        }
+    rows = read_json(path)
+    if not isinstance(rows, list):
+        return {
+            "poems_total": 0,
+            "poems_with_match": 0,
+            "poems_without_match": 0,
+            "match_coverage_percent": 0.0,
+            "total_matches": 0,
+            "avg_match_count": 0.0,
+            "min_match_count": 0,
+            "max_match_count": 0,
+            "multi_match_poems": 0,
+        }
+    counts = [_mount_match_count(row) for row in rows]
+    poems_total = len(counts)
+    poems_with_match = sum(1 for item in counts if item > 0)
+    total_matches = sum(counts)
+    return {
+        "poems_total": poems_total,
+        "poems_with_match": poems_with_match,
+        "poems_without_match": max(0, poems_total - poems_with_match),
+        "match_coverage_percent": round((poems_with_match * 100.0) / poems_total, 2) if poems_total else 0.0,
+        "total_matches": total_matches,
+        "avg_match_count": round(total_matches / poems_total, 2) if poems_total else 0.0,
+        "min_match_count": min(counts) if counts else 0,
+        "max_match_count": max(counts) if counts else 0,
+        "multi_match_poems": sum(1 for item in counts if item >= 2),
+    }
+
+
+def _mounting_artifact_stats(run_dir: Path) -> Dict[str, Any]:
+    full = _mounting_stats(run_dir / "poem_mounting_full.json")
+    seed = _mounting_stats(run_dir / "poem_mounting_seed.json")
+    return {
+        "mounting_full_poems_total": full["poems_total"],
+        "mounting_full_poems_with_match": full["poems_with_match"],
+        "mounting_full_poems_without_match": full["poems_without_match"],
+        "mounting_full_match_coverage_percent": full["match_coverage_percent"],
+        "mounting_full_total_matches": full["total_matches"],
+        "mounting_full_avg_match_count": full["avg_match_count"],
+        "mounting_seed_poems_total": seed["poems_total"],
+        "mounting_seed_poems_with_match": seed["poems_with_match"],
+        "mounting_seed_poems_without_match": seed["poems_without_match"],
+        "mounting_seed_match_coverage_percent": seed["match_coverage_percent"],
+        "mounting_seed_total_matches": seed["total_matches"],
+        "mounting_seed_avg_match_count": seed["avg_match_count"],
+    }
+
+
 def ingest_run_artifacts(
     conn,
     run_id: str,
@@ -425,8 +503,9 @@ def ingest_run_artifacts(
         if corpus_markdown_files > 0
         else 0.0
     )
+    mounting_stats = _mounting_artifact_stats(run_dir)
 
-    return {
+    summary = {
         "run_id": run_id,
         "nodes": len(prepared_nodes),
         "edges": total_edges,
@@ -440,4 +519,12 @@ def ingest_run_artifacts(
         "source_coverage_percent": source_coverage_percent,
         "fragments": fragment_rows,
         "max_stage_jump": max_stage_jump,
+        **mounting_stats,
     }
+
+    config_payload["ingest_stats"] = summary
+    conn.execute(
+        "UPDATE runs SET config_json = ? WHERE run_id = ?",
+        (json.dumps(config_payload, ensure_ascii=False), run_id),
+    )
+    return summary

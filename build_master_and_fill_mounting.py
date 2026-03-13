@@ -25,6 +25,7 @@ DEFAULT_LOCATION = "us-central1"
 DEFAULT_MODEL_CANDIDATES = ["gemini-3.1", "gemini-3-pro", "gemini-2.5-pro"]
 DEFAULT_SOURCE_FOLDER = "./sample_poems"
 DEFAULT_EXCLUDE_DIRS = {".obsidian", ".trash", "Templates"}
+EXTRA_FRAGMENT_PATHS = os.getenv("EXTRA_FRAGMENT_PATHS", "")
 
 FILL_TEMPERATURE = float(os.getenv("FILL_TEMPERATURE", "0.12"))
 FILL_MAX_RETRIES = int(os.getenv("FILL_MAX_RETRIES", "3"))
@@ -711,6 +712,8 @@ def run(args: argparse.Namespace) -> None:
         str(workdir / "skill_web_fragment_*.json"),
         str(workdir / "archives" / "skill_web_fragments_*" / "skill_web_fragment_*.json"),
     ]
+    extra_paths = [p.strip() for p in EXTRA_FRAGMENT_PATHS.split(",") if p.strip()]
+    fragment_patterns.extend(extra_paths)
     fragments = load_fragments_from_patterns(fragment_patterns)
     if not fragments:
         raise RuntimeError("no skill_web_fragment_*.json found")

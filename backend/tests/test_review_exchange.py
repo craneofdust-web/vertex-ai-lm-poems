@@ -133,6 +133,16 @@ def test_export_and_import_roundtrip(tmp_path: Path) -> None:
     assert rows[0]["stance"] == "revise"
 
 
+def test_export_wave_prompts_rejects_unknown_batch(tmp_path: Path) -> None:
+    settings, _ = _prepare_session(tmp_path)
+    try:
+        export_wave_prompts(settings, "run_full_demo", "salon_demo", "craft_pass", "batch_999")
+    except ValueError as exc:
+        assert str(exc) == "batch_id not found: batch_999"
+    else:
+        raise AssertionError("expected ValueError for unknown batch_id")
+
+
 def test_normalize_stance_maps_positive_aliases() -> None:
     assert _normalize_stance("qualified_positive") == "support"
     assert _normalize_stance("positive_with_reservations") == "support"

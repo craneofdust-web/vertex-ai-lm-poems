@@ -16,8 +16,25 @@ def _iso_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
+def _run_dir(repo_root: Path, run_id: str) -> Path:
+    runtime_root = repo_root / "runtime_workspaces"
+    candidates = [
+        path
+        for path in runtime_root.glob(f"*/runs/{run_id}")
+        if path.is_dir() and (path / "master_skill_web.json").is_file()
+    ]
+    if not candidates:
+        raise SystemExit(f"[error] run_id not found in runtime_workspaces: {run_id}")
+    return max(candidates, key=lambda path: path.stat().st_mtime)
+
+
+def _session_dir(repo_root: Path, run_id: str, session_id: str) -> Path:
+    run_dir = _run_dir(repo_root, run_id)
+    return run_dir.parent.parent / "literary_salon" / session_id
+
+
 def _run_logs_dir(repo_root: Path, run_id: str, session_id: str) -> Path:
-    return repo_root / "runtime_workspaces" / run_id / "literary_salon" / session_id / "run_logs"
+    return _session_dir(repo_root, run_id, session_id) / "run_logs"
 
 
 def _batch_report_path(run_logs_dir: Path, wave_id: str, batch_id: str) -> Path:
@@ -56,7 +73,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def discover_batches(repo_root: Path, run_id: str, session_id: str) -> list[str]:
-    review_batches = repo_root / "runtime_workspaces" / run_id / "literary_salon" / session_id / "review_batches"
+    review_batches = _session_dir(repo_root, run_id, session_id) / "review_batches"
     if not review_batches.is_dir():
         raise SystemExit(f"[error] review_batches not found: {review_batches}")
     return [path.stem for path in sorted(review_batches.glob("batch_*.jsonl"))]

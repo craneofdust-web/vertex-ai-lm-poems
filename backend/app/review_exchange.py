@@ -271,7 +271,14 @@ def export_wave_prompts(
     batches_dir = session_dir / "review_batches"
     if not batches_dir.is_dir():
         raise ValueError(f"review_batches not found: {batches_dir}")
-    batch_paths = [batches_dir / f"{batch_id}.jsonl"] if batch_id else sorted(batches_dir.glob("batch_*.jsonl"))
+    if batch_id:
+        requested_batch = str(batch_id).strip()
+        batch_path = batches_dir / f"{requested_batch}.jsonl"
+        if not batch_path.is_file():
+            raise ValueError(f"batch_id not found: {requested_batch}")
+        batch_paths = [batch_path]
+    else:
+        batch_paths = sorted(batches_dir.glob("batch_*.jsonl"))
     if not batch_paths:
         raise ValueError("no batch files found")
 
